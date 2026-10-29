@@ -1,0 +1,18 @@
+# The game. Every key is optional (defaults: JumPHP\Kernel\GameConfig::DEFAULTS).
+game:
+  id: zombi-ubisoft-1986-php                  # lower case, unique: folder of the games portal, network room filter
+  title: "Zombi Ubisoft (1986) PHP"
+  version: 0.1.0
+  description: "Quand il n'y a plus de place en enfer, les morts reviennent sur terre..."
+  width: 320                    # virtual resolution (pixels of the game, scaled to the window)
+  height: 180
+  scale: 3                      # desktop window = 960 x 540
+  background: [16, 16, 32]
+  start_scene: App\Scene\TitleScene
+  lang: en
+  net_url: ws://localhost:8090/ws   # relay server (bin/jumphp relay up); the page can override with ?net=
+  online: false
+  # what `bin/jumphp test` runs headless (no window), 600 frames = 10 s of game time
+  smoke:
+    scene: App\Scene\PlayScene
+    params: { demo: true }
