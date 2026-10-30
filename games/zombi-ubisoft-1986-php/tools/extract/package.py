@@ -19,6 +19,10 @@ atlas=Image.new('RGB',(1600,720))
 for room in range(1,91):
     atlas.paste(Image.open(source/f'rooms-lit/background-{room:02d}.png'),(((room-1)%10)*160,((room-1)//10)*80))
 atlas.save(out/'rooms.png')
+trucks=Image.new('RGB',(960,80))
+for i,(room,variant) in enumerate(((64,'parked'),(65,'parked'),(66,'parked'),(72,'empty'),(77,'empty'),(82,'empty'))):
+    trucks.paste(Image.open(source/f'trucks/background-{room:02d}-{variant}.png'),(i*160,0))
+trucks.save(out/'trucks.png')
 sprites=Image.new('RGBA',(320,256),(0,0,0,0))
 for entry in objects:
     i=entry['id']-1;entry['x']=i%10*32;entry['y']=i//10*32

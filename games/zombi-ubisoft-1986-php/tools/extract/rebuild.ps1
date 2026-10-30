@@ -42,7 +42,10 @@ if (-not $ReuseCaptures) {
         @('probe-recovery.py'),@('probe-time-combat.py'),@('probe-combat-input.py'),@('probe-light.py'),
         @('probe-weapons.py'),@('probe-electricity.py'),@('probe-vehicle.py'),@('probe-fuel-chain.py'),@('probe-global-defeat.py'),
         @('probe-lifts.py','36','0','--passenger'),@('probe-lifts.py','63','0'),@('probe-lifts.py','63','1'),
-        @('probe-rope.py','35','1'),@('probe-rope.py','38','0'),@('probe-rope.py','38','1'),@('probe-rope.py','46','1'))) {
+        @('probe-rope.py','35','1'),@('probe-rope.py','38','0'),@('probe-rope.py','38','1'),@('probe-rope.py','46','1'),
+        @('probe-trucks.py','72','1'),@('probe-trucks.py','77','0'),@('probe-trucks.py','77','1'),@('probe-trucks.py','82','1'),
+        @('probe-terminal.py','LIST'),@('probe-terminal.py','ELECTRICITE'),@('probe-terminal.py','NUIT'),
+        @('probe-terminal.py','ZOMBI_DEAD'),@('probe-terminal.py','BYE'),@('probe-terminal.py','BIDULE'))) {
         Step (@('python3','-I',"/workspace/analysis/$($argsForProbe[0])") + @($argsForProbe | Select-Object -Skip 1))
         # Position-controlled experiments below need the world table from the first boot.
         if ($argsForProbe[0] -eq 'probe-directions.py' -and $argsForProbe.Count -eq 1) {
@@ -50,7 +53,7 @@ if (-not $ReuseCaptures) {
         }
     }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

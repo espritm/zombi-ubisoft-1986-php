@@ -5,8 +5,9 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.3.0';
+    public const VERSION = '0.4.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
+    public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
         5 => 'CONSOMMER', 6 => 'DORMIR', 7 => 'REVEILLER', 8 => 'OUVRIR', 9 => 'FERMER',
         10 => 'PERSONNAGE', 11 => 'PAUSE', 12 => 'RECOMMENCER', 13 => 'SAUVEGARDER',
@@ -35,6 +36,8 @@ final class World
     public int $fuelTank = 0;
     public float $minutes = 615.0;
     public string $ending = '';
+    public string $terminalInput = '';
+    public array $terminalLines = [];
     public float $pressure = 0.0;
     public float $aim = 0.0;
     private float $battleTime = 0.0;
@@ -158,8 +161,9 @@ final class World
 
     public function changeChoice(int $delta): void
     {
-        $count = $this->mode === 'lift' ? 5 : ($this->mode === 'direction' ? 6 : ($this->mode === 'character' ? 4 :
-            ($this->mode === 'container' ? count($this->containerChoices()) : count($this->inventoryChoices()))));
+        $count = $this->mode === 'terminal' ? count(self::TERMINAL_COMMANDS) : ($this->mode === 'lift' ? 5 :
+            ($this->mode === 'direction' ? 6 : ($this->mode === 'character' ? 4 :
+            ($this->mode === 'container' ? count($this->containerChoices()) : count($this->inventoryChoices())))));
         $this->choice = ($this->choice + $delta + max(1, $count)) % max(1, $count);
     }
 
@@ -177,6 +181,7 @@ final class World
             case 'character': $this->selectPerson($this->choice); return;
             case 'direction': $this->direction = $this->choice; $this->move($this->choice); return;
             case 'lift': $this->moveLift($this->choice); return;
+            case 'terminal': $this->terminalCommand($this->terminalInput ?: self::TERMINAL_COMMANDS[$this->choice]); return;
             case 'inventory': $this->pickInventory(); return;
             case 'container':
                 $item = $this->containerChoices()[$this->choice] ?? 0;
@@ -270,6 +275,59 @@ final class World
         $this->party[$this->active]['position'] = $target;
         $this->pressure = 0; $this->battleTime = 0;
         $this->message = 'DESCENTE PAR LA CORDE'; return true;
+    }
+
+    /** #98FA–#99D8: fixed truck routes, copied object rows and blocked entrances. */
+    public function driveTruck(): bool
+    {
+        $interior = $this->person()['inside'];
+        $routes = [87 => [77, 65, 19, 0, 2], 88 => [72, 66, 31, 1, 3], 89 => [82, 64, 32, 3, 1]];
+        if (!isset($routes[$interior]) || $this->person()['state'] !== 0) { return false; }
+        if (!in_array(68, $this->current()['cells'], true)) { $this->message = 'METTRE LE CONTACT'; return false; }
+        [$source, $target, $blocked, $exit, $opposite] = $routes[$interior];
+        if (($this->map[$this->person()['position']] ?? 0) !== $source || $this->rooms[$source]['prefix'][9] !== 77) {
+            $this->message = "PLUS D'ESSENCE"; return false;
+        }
+        $position = array_search($target, $this->map, true);
+        if ($position === false) { return false; }
+        for ($i = 0; $i < 30; $i++) {
+            $this->rooms[$target]['cells'][$i] = $this->rooms[$source]['cells'][$i];
+            $this->rooms[$source]['cells'][$i] = 0;
+        }
+        for ($i = 32; $i < 40; $i++) { $this->rooms[$target]['cells'][$i] = 0; }
+        $this->rooms[$source]['prefix'][9] = 0;
+        $this->rooms[$target]['prefix'][9] = 77;
+        $this->rooms[$blocked]['prefix'][$exit] = 10;
+        $this->rooms[$target]['prefix'][$opposite] = 10;
+        foreach ($this->party as &$survivor) {
+            if ($survivor['inside'] === $interior) { $survivor['position'] = $position; }
+        }
+        unset($survivor);
+        $this->mode = 'normal'; $this->pressure = 0; $this->battleTime = 0;
+        $this->message = 'ACCES BLOQUE. MOTEUR ARRETE'; return true;
+    }
+
+    /** Original #973E–#97E1: hints and the active survivor's training flag. */
+    public function terminalCommand(string $command): bool
+    {
+        if ($this->mode !== 'terminal' || $this->person()['state'] !== 0) { return false; }
+        $command = substr(strtoupper(trim($command)), 0, 13);
+        $matched = null;
+        foreach (array_merge(self::TERMINAL_COMMANDS, ['ZOMBI DEAD']) as $known) {
+            if (str_starts_with($command, $known)) { $matched = $known; break; }
+        }
+        $this->terminalInput = '';
+        if ($matched === 'BYE') { $this->mode = 'normal'; $this->message = 'TERMINAL DECONNECTE'; return true; }
+        $lines = match ($matched) {
+            'LIST' => ['ELECTRICITE', 'NUIT'],
+            'ELECTRICITE' => ['FUSIBLES.'],
+            'NUIT' => ['22h-6h.'],
+            'ZOMBI DEAD' => ['SHOOT BRAIN.'],
+            default => ['SYNTAX ERROR'],
+        };
+        if ($matched === 'ZOMBI DEAD') { $this->party[$this->active]['trained'] = true; }
+        $this->terminalLines = array_slice(array_merge($this->terminalLines, ['>' . $command], $lines, ['RDY:']), -4);
+        return $matched !== null;
     }
 
     private function addItem(int $item): bool
@@ -383,7 +441,7 @@ final class World
             }
             unset($person); $this->replaceObject($item, $item - 1); $this->message = 'REVEILLE';
         }
-        if ($this->mode !== 'lift') { $this->mode = 'normal'; }
+        if (!in_array($this->mode, ['lift', 'terminal'], true)) { $this->mode = 'normal'; }
     }
 
     private function placeObject(int $item): bool
@@ -428,7 +486,7 @@ final class World
                 if (!in_array(69, $this->current()['cells'], true)) { $this->message = 'METTRE LE CONTACT'; return; }
                 if ($this->fuelTank === 0) { $this->message = "PLUS D'ESSENCE"; return; }
                 $this->ending = 'victory'; return;
-            case 71: $this->message = 'CAMIONS : PORTAGE EN COURS'; return;
+            case 71: $this->driveTruck(); return;
             case 73:
                 $target = $this->person()['position'] - 8;
                 if (in_array($target, [2, 58, 114, 170, 226], true)) {
@@ -441,7 +499,10 @@ final class World
                     $this->message = 'CHOISIR UN ETAGE';
                 }
                 return;
-            case 65: case 70: case 75: $this->message = 'TERMINAL : PORTAGE EN COURS'; return;
+            case 75:
+                $this->mode = 'terminal'; $this->choice = 0; $this->terminalInput = '';
+                $this->terminalLines = ['LOGIN', 'RDY:']; $this->message = 'TERMINAL CONNECTE'; return;
+            case 65: case 70: $this->message = 'VIDEO : PORTAGE EN COURS'; return;
             default: $this->message = 'AUCUN EFFET'; return;
         }
         $this->replaceObject($item, $new); $this->message = 'ACTION EFFECTUEE';
@@ -511,8 +572,9 @@ final class World
     {
         $r = &$this->rooms[$this->roomId()]; $r['prefix'][6] = max(0, $r['prefix'][6] - 1);
         $r['hp'] = 31;
-        $slot = array_search(0, $r['cells'], true);
-        if ($slot !== false) { $r['cells'][$slot] = 48; }
+        // Original #93E2 uses corpse 53 in the two leftmost bottom cells, not truck key 48.
+        $r['prefix'][8] = min(255, $r['prefix'][8] + 1);
+        $r['cells'][30] = 53; $r['cells'][31] = 53;
         $this->pressure = 0; $this->mode = 'normal'; $this->message = 'ZOMBI ABATTU';
     }
 
@@ -574,7 +636,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $map = ($save['version'] === '0.2.0') ? $this->initialMap : ($save['map'] ?? null);
         if (!is_array($map)) { return false; }
@@ -623,6 +685,7 @@ final class World
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);
         $this->pressure = 0; $this->battleTime = 0; $this->lastStrike = -100; $this->lastSide = 0;
+        $this->terminalInput = ''; $this->terminalLines = [];
         $this->mode = 'normal'; $this->ending = ''; $this->message = 'PARTIE CHARGEE'; return true;
     }
 

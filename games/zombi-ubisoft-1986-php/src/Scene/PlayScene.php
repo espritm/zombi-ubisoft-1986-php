@@ -34,6 +34,10 @@ final class PlayScene extends AbstractScene
     {
         $this->time += $dt;
         $a = $this->actions(); $w = $this->world;
+        if ($w->mode === 'terminal' && !$this->help) {
+            if ($this->engine->input->getKeyboard()->isKeyPressed(\SDLK_F1)) { $this->help = true; return; }
+            $this->terminalInput(); $w->advance($dt); return;
+        }
         if ($a->isPressed('help')) { $this->help = !$this->help; return; }
         if ($this->help) {
             if ($a->isPressed('confirm') || $a->isPressed('back')) { $this->help = false; }
@@ -85,6 +89,26 @@ final class PlayScene extends AbstractScene
             match ($this->demoStage++) { 0 => $w->move(3), 1, 2 => $w->move(4), 3 => $w->selectPerson(0), default => null };
         }
         $w->advance($dt);
+    }
+
+    private function terminalInput(): void
+    {
+        $w = $this->world; $a = $this->actions(); $keyboard = $this->engine->input->getKeyboard();
+        if ($a->isPressed('back')) { $w->cancel(); return; }
+        if ($a->isPressed('up')) { $w->changeChoice(-1); }
+        if ($a->isPressed('down')) { $w->changeChoice(1); }
+        foreach ($keyboard->getTyped() as $key) {
+            if ($key === \SDLK_BACKSPACE || $key === \SDLK_DELETE) { $w->terminalInput = substr($w->terminalInput, 0, -1); }
+            elseif (strlen($w->terminalInput) < 13 && ($key === 32 || ($key >= 97 && $key <= 122) || ($key >= 65 && $key <= 90))) {
+                $w->terminalInput .= strtoupper(chr($key));
+            }
+        }
+        // Space is text inside the console; Return or gamepad A executes.
+        if ($a->isPressed('confirm') && !$keyboard->isKeyPressed(\SDLK_SPACE)) { $w->confirm(); }
+        $mouse = $this->engine->input->getMouse();
+        if ($mouse->isPressed() && $mouse->x >= 20 && $mouse->x < 180 && $mouse->y >= 114 && $mouse->y < 114 + 11 * count(World::TERMINAL_COMMANDS)) {
+            $w->choice = (int)floor(($mouse->y - 114) / 11); $w->terminalInput = ''; $w->confirm();
+        } elseif ($mouse->isPressed() && $mouse->x >= 188 && $mouse->y >= 169 && $mouse->y < 180) { $w->cancel(); }
     }
 
     private function mouse(): void
@@ -145,6 +169,6 @@ final class PlayScene extends AbstractScene
         $v->panel($r, 'ZOMBI - AIDE DU PROTOTYPE', ['FLECHES : ACTION / SELECTION', 'ENTREE / ESPACE : VALIDER',
             'TAB : ANNULER  ECHAP : PAUSE', '1-4 : SURVIVANT  C : CHOISIR', 'M : SE DEPLACER  I : EQUIPER',
             'SOURIS : ICONES, OBJETS, PORTRAITS', 'F5 : SAUVER  F9 : CHARGER', 'COMBAT : ALTERNER GAUCHE/DROITE',
-            'ASCENSEUR : ACTIONNER LE PANNEAU', 'CORDE : ACTIVER AVANT DE PASSER', 'CAMIONS ET QUETE ENCORE INCOMPLETS', 'ENTREE / ECHAP : FERMER']);
+            'CAMION : CLE, CONTACT, DEMARRER', 'TERMINAL : TAPER OU CHOISIR', 'VIDEO ET QUETE ENCORE INCOMPLETES', 'ENTREE / ECHAP : FERMER']);
     }
 }

@@ -11,7 +11,7 @@ final class CpcView
 {
     public function __construct(private Sdl $sdl, string $directory)
     {
-        foreach (['rooms', 'objects', 'actions', 'portraits', 'frame', 'title', 'victory', 'defeat',
+        foreach (['rooms', 'trucks', 'objects', 'actions', 'portraits', 'frame', 'title', 'victory', 'defeat',
             'font-black', 'font-white', 'font-blue', 'font-red'] as $name) {
             $sdl->loadTexture('cpc:' . $name, $directory . '/' . $name . '.png');
         }
@@ -45,7 +45,12 @@ final class CpcView
 
     public function room(Renderer $r, World $w, int $id, int $x = 8, int $y = 48): void
     {
-        $this->image($r, 'rooms', $x, $y, [(($id - 1) % 10) * 160, intdiv($id - 1, 10) * 80, 160, 80], 160, 80);
+        $variants = [64 => [0, 77], 65 => [1, 77], 66 => [2, 77], 72 => [3, 0], 77 => [4, 0], 82 => [5, 0]];
+        if (isset($variants[$id]) && $w->rooms[$id]['prefix'][9] === $variants[$id][1]) {
+            $this->image($r, 'trucks', $x, $y, [$variants[$id][0] * 160, 0, 160, 80], 160, 80);
+        } else {
+            $this->image($r, 'rooms', $x, $y, [(($id - 1) % 10) * 160, intdiv($id - 1, 10) * 80, 160, 80], 160, 80);
+        }
         $seen = [];
         foreach ($w->rooms[$id]['cells'] as $index => $item) {
             if ($item <= 0 || $item >= 255 || (isset($seen[$item]) && $item !== 48)) { continue; }
@@ -82,7 +87,7 @@ final class CpcView
         $r->fillRect(100, 140, 120, 12, [0, 0, 0]);
         $shown = strlen($message) > 14 ? substr($message . $message, $offset, 14) : trim($message);
         $this->text($r, $shown, 104, 142);
-        $this->text($r, 'PROTOTYPE 0.3  F1:AIDE', 8, 154, 'blue');
+        $this->text($r, 'PROTOTYPE 0.4  F1:AIDE', 8, 154, 'blue');
         for ($slot = 0; $slot < 9; $slot++) {
             $action = (($w->action - 1 + $slot - 4 + 36) % 18) + 1;
             $this->image($r, 'actions', 16 + $slot * 32, 168, [(($action + 3) % 18) * 32, 0, 32, 32], 32, 32);
@@ -115,6 +120,15 @@ final class CpcView
             $phase = fmod($w->aim, 2); $cursor = $phase <= 1 ? $phase : 2 - $phase;
             $r->drawRect(112, 130, 16, 8, [0, 128, 255]);
             $r->fillRect(72 + $cursor * 94, 130, 2, 8, [255, 0, 0]);
+        }
+        if ($w->mode === 'terminal') {
+            $this->panel($r, 'TERMINAL - ENTREE : EXECUTER', $w->terminalLines);
+            $this->text($r, '>' . $w->terminalInput . '_', 20, 95, 'blue');
+            foreach (World::TERMINAL_COMMANDS as $i => $command) {
+                $this->text($r, ($w->choice === $i ? '>' : ' ') . $command, 20, 114 + 11 * $i,
+                    $w->choice === $i ? 'blue' : 'white');
+            }
+            $this->text($r, 'ECHAP : SORTIR', 188, 169, 'blue');
         }
     }
 

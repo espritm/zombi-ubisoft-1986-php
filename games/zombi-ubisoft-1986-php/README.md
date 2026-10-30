@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.3
+# Zombi — prototype CPC 0.4
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -43,13 +43,17 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
 - Ascenseur mobile sur cinq niveaux, appels depuis les paliers et transport de tous les passagers.
 - Trois passages avec corde : activer la corde avant de franchir l’ouverture. Sans corde active, le personnage chute.
 - Sauvegarde du plan mobile et chargement conservé pour les anciennes parties 0.2.
+- Trois trajets de camion : clé en main, contact puis démarrage. Les passagers suivent le camion et certains accès se ferment.
+- Ordinateur : commandes au clavier (13 lettres/espaces maximum) ou menu cliquable ; Entrée valide, Échap quitte.
+- Nouveaux décors après déplacement des camions et sauvegarde de ces changements ; parties 0.2 et 0.3 conservées.
 
-**Ce n’est pas encore une adaptation complète.** Certains passages spéciaux, les camions et les terminaux,
+**Ce n’est pas encore une adaptation complète.** Certains passages spéciaux, le lecteur vidéo,
 usages secondaires d’objets, entraînement, munitions et événements narratifs restent à compléter.
 La chaîne carburant/contact/décollage est testée avec des préconditions contrôlées ;
 aucun parcours naturel complet depuis une nouvelle partie n’est revendiqué.
 Les chronomètres de repos/réanimation proviennent des observations ; l’horloge et le combat doivent encore être affinés.
 Les observations ajoutées pour cette version sont détaillées dans [ASCENSEUR-ET-CORDE.md](tools/extract/ASCENSEUR-ET-CORDE.md).
+Les trajets, les réponses de l’ordinateur et la correction des corps sont documentés dans [CAMIONS-ET-TERMINAL.md](tools/extract/CAMIONS-ET-TERMINAL.md).
 
 ## Page et publication
 

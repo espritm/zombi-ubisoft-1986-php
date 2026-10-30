@@ -222,4 +222,75 @@ final class WorldTest extends TestCase
         self::assertTrue($w->restore($legacy)); self::assertSame(63, $w->map[58]);
         self::assertSame(62, $w->roomId()); self::assertSame(3, $w->active);
     }
+
+    public function testThreeTruckRoutesRequireKeyContactAndPreserveRiders(): void
+    {
+        foreach ([[77,65,1,87,19,0,2], [72,66,2,88,31,1,3], [82,64,3,89,32,3,1]] as [$source,$target,$door,$cab,$blocked,$exit,$opposite]) {
+            $w = $this->world(); $w->electricity = true;
+            $w->party[3]['position'] = array_search($source, $w->map, true);
+            $this->objectAction($w, 8, $door); $w->chooseAction(16); $w->activateAction();
+            self::assertSame($cab, $w->roomId()); self::assertFalse($w->driveTruck());
+            $this->objectAction($w, 4, 63); self::assertNotContains(68, $w->current()['cells']);
+            $w->party[3]['held'] = 48; $this->objectAction($w, 4, 63); self::assertContains(68, $w->current()['cells']);
+            $w->party[0]['inside'] = $cab; $w->party[0]['position'] = $w->party[3]['position'];
+            $w->party[1]['inside'] = $cab === 89 ? 87 : 89;
+            $before = $w->rooms[$source]['cells']; $targetBefore = $w->rooms[$target]['cells'];
+            $this->objectAction($w, 4, 71);
+            self::assertSame(array_search($target, $w->map, true), $w->party[3]['position']);
+            self::assertSame($w->party[3]['position'], $w->party[0]['position']); self::assertSame(316, $w->party[1]['position']);
+            self::assertSame(0, $w->rooms[$source]['prefix'][9]); self::assertSame(77, $w->rooms[$target]['prefix'][9]);
+            self::assertSame(array_slice($before,0,30), array_slice($w->rooms[$target]['cells'],0,30));
+            self::assertSame(array_slice($targetBefore,30,2), array_slice($w->rooms[$target]['cells'],30,2));
+            self::assertSame(array_fill(0,8,0), array_slice($w->rooms[$target]['cells'],32,8));
+            self::assertSame(array_fill(0,30,0), array_slice($w->rooms[$source]['cells'],0,30));
+            self::assertSame(10, $w->rooms[$blocked]['prefix'][$exit]); self::assertSame(10, $w->rooms[$target]['prefix'][$opposite]);
+            $once = $w->export(); self::assertFalse($w->driveTruck()); self::assertSame($once, $w->export());
+            $w->chooseAction(17); $w->activateAction(); self::assertSame($target, $w->roomId());
+        }
+    }
+
+    private function terminal(World $w): void
+    {
+        $w->party[3]['position'] = array_search(39, $w->map, true);
+        $this->objectAction($w, 4, 75); self::assertSame('terminal', $w->mode);
+    }
+
+    public function testTerminalHintsDoNotChangeElectricityOrTime(): void
+    {
+        $w = $this->world(); $this->terminal($w); $time = $w->minutes;
+        self::assertTrue($w->terminalCommand('LIST')); self::assertContains('ELECTRICITE', $w->terminalLines); self::assertContains('NUIT', $w->terminalLines);
+        self::assertTrue($w->terminalCommand('ELECTRICITE')); self::assertContains('FUSIBLES.', $w->terminalLines);
+        self::assertTrue($w->terminalCommand('NUIT')); self::assertContains('22h-6h.', $w->terminalLines);
+        self::assertFalse($w->electricity); self::assertSame($time, $w->minutes);
+        self::assertFalse($w->terminalCommand('BIDULE')); self::assertContains('SYNTAX ERROR', $w->terminalLines);
+        self::assertSame('terminal', $w->mode); self::assertFalse($w->person()['trained']);
+    }
+
+    public function testTerminalTrainingAndCommandMenuAffectOnlyCurrentSurvivor(): void
+    {
+        $w = $this->world(); $this->terminal($w);
+        $w->terminalInput = 'ZOMBI DEAD'; $w->confirm(); self::assertTrue($w->party[3]['trained']); self::assertFalse($w->party[0]['trained']);
+        self::assertContains('SHOOT BRAIN.', $w->terminalLines);
+        self::assertNotContains('ZOMBI DEAD',World::TERMINAL_COMMANDS);
+        $w->choice = 3; $w->confirm(); self::assertSame('normal', $w->mode);
+        self::assertFalse($w->terminalCommand('ZOMBI DEAD')); self::assertFalse($w->party[0]['trained']);
+    }
+
+    public function testTrucksAndTrainingPersistAndVersion03SavesStillLoad(): void
+    {
+        $w = $this->world(); $w->party[3]['position'] = array_search(77,$w->map,true); $w->party[3]['inside'] = 87;
+        $w->rooms[87]['cells'][0] = 68; self::assertTrue($w->driveTruck()); $w->party[3]['trained'] = true;
+        $save = $w->export(); $copy = $this->world(); self::assertTrue($copy->restore($save)); self::assertSame($save,$copy->export());
+        $old = $this->world()->export(); $old['version'] = '0.3.0';
+        self::assertTrue($copy->restore($old)); self::assertSame(77,$copy->rooms[77]['prefix'][9]); self::assertFalse($copy->party[3]['trained']);
+    }
+
+    public function testDefeatedEnemyLeavesCorpseRatherThanTruckKey(): void
+    {
+        $w = $this->world(); $w->party[3]['position'] = array_search(41,$w->map,true); $w->party[3]['held'] = 34;
+        $w->chooseAction(3); $w->activateAction(); self::assertSame('aim',$w->mode);
+        $w->aim = 0.5; $w->confirm();
+        self::assertSame(0,$w->current()['prefix'][6]); self::assertSame(1,$w->current()['prefix'][8]);
+        self::assertSame([53,53],array_slice($w->current()['cells'],30,2)); self::assertNotContains(48,$w->current()['cells']);
+    }
 }

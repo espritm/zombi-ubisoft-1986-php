@@ -17,7 +17,12 @@ This is a 320×200 French prototype of the 1986 CPC game, not the former platfor
 - Lift: room 63 moves between map indices `2 + 56 * floor`, with five floors. Calls transport passengers,
   update landing exits and preserve special locks. Floor selection and mouse input use mode `lift`.
 - Rope: three observed routes 35→64, 38→66, 46→65; item 41 must be active, is left at the source and consumed.
-- Saves 0.3 contain the mobile map; 0.2 saves migrate with the initial map. Keep the existing save filename.
+- Saves 0.4 retain truck room changes and training; 0.3 and 0.2 saves remain supported. Keep the existing save filename.
+- Truck routes: interior 87 maps 77→65, 88 maps 72→66, 89 maps 82→64; contact 68 is required.
+  Copy first 30 source object cells, clear destination 32–39, update prefix +9 and blocked exits, transport matching interiors.
+- `assets/original/trucks.png`: six private background variants, selected by room ID and prefix +9.
+- Terminal mode must consume keyboard input before global shortcuts: Space/H/M/C/I are text. Public command menu excludes the hidden training command.
+- Corpses use object 53 in grid cells 30/31 and increment room prefix +8; never spawn key 48 as combat loot.
 - `tools/browser-test.cjs` tests these mechanisms through the browser UI with controlled start positions.
 - `tools/site/`: screenshots and ignored image generation. Private website pictures use `play/private/assets/site/`;
   rerun `images.py` after `build:site` to mirror that route locally before `siteshot`.
@@ -32,7 +37,7 @@ Check the home page on desktop and phone with `siteshot`. Publish only after pri
 
 ## Scope and remaining work
 
-Ordinary exploration, lifts, rope routes and core object state are implemented. Other special exits, truck puzzles, terminals,
+Ordinary exploration, lifts, rope routes, trucks, the computer and core object state are implemented. Other special exits, video playback,
 secondary item uses and the full natural quest remain incomplete and are labelled in game and on the page.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.

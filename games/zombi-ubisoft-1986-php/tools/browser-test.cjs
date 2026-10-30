@@ -19,7 +19,8 @@ const assert = require('node:assert/strict');
       window.JumPHP.php(`$scene=$GLOBALS['app']->engine->scenes->current();
         $w=(new ReflectionProperty($scene,'world'))->getValue($scene);
         file_put_contents('/tmp/zombi-browser-state.json',json_encode(['room'=>$w->roomId(),'active'=>$w->active,
-        'mode'=>$w->mode,'choice'=>$w->choice,'minutes'=>$w->minutes,'save'=>$w->export()]));`);
+        'mode'=>$w->mode,'choice'=>$w->choice,'terminalInput'=>$w->terminalInput,'terminalLines'=>$w->terminalLines,
+        'minutes'=>$w->minutes,'save'=>$w->export()]));`);
       return JSON.parse(window.JumPHP.FS.readFile('/tmp/zombi-browser-state.json',{encoding:'utf8'}));
     });
     await page.goto(process.argv[2],{waitUntil:'load'}); await ready();
@@ -68,7 +69,33 @@ const assert = require('node:assert/strict');
     await key('Enter'); await key('Enter'); await move(3);
     const rope=await state(); assert.equal(rope.room,66); assert.equal(rope.save.party[3].held,0); assert.equal(rope.save.party[3].used,0);
     assert.ok(rope.save.rooms[38].cells.includes(41));
+    const object = async (action,id) => {
+      await setup(`$w->chooseAction(${action});$cell=array_search(${id},$w->current()['cells'],true);$w->row=intdiv($cell,10);$w->col=$cell%10;`);
+      await key('Enter'); await key('Enter');
+    };
+    await setup("$w->party[3]['position']=array_search(39,$w->map,true);$w->rooms[39]['prefix'][6]=0;");
+    await object(4,75); assert.equal((await state()).mode,'terminal');
+    await key('h'); assert.equal((await state()).terminalInput,'H');
+    await key('Enter'); assert.ok((await state()).terminalLines.includes('SYNTAX ERROR'));
+    await page.keyboard.type('NUIT',{delay:65}); await key('Enter'); assert.ok((await state()).terminalLines.includes('22h-6h.'));
+    await page.keyboard.type('ZOMBI DEAD',{delay:65}); await wait(100);
+    assert.equal((await state()).terminalInput,'ZOMBI DEAD'); await key('Enter');
+    assert.equal((await state()).save.party[3].trained,true); assert.equal((await state()).save.party[0].trained,false);
+    await page.screenshot({path:process.argv[3].replace(/\.png$/,'-terminal.png')});
+    const rect=await page.$eval('canvas',el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height};});
+    await page.mouse.click(rect.x+80/320*rect.w,rect.y+151/200*rect.h); await wait(200);
+    assert.equal((await state()).mode,'normal');
+    await setup("$w->party[3]['position']=105;$w->party[3]['held']=48;$w->party[3]['used']=0;$w->rooms[77]['prefix'][6]=0;$w->rooms[65]['prefix'][6]=0;$w->party[0]['inside']=87;$w->party[0]['position']=105;");
+    await object(8,1); await setup('$w->chooseAction(16);'); await key('Enter'); assert.equal((await state()).room,87);
+    await object(4,63); await object(4,71);
+    assert.equal((await state()).save.party[3].position,106); assert.equal((await state()).save.party[0].position,106);
+    await setup('$w->chooseAction(17);'); await key('Enter'); assert.equal((await state()).room,65);
+    assert.equal((await state()).save.rooms[65].prefix[9],77); assert.equal((await state()).save.rooms[77].prefix[9],0);
+    await page.screenshot({path:process.argv[3].replace(/\.png$/,'-truck.png')});
+    await key('F5'); await wait(2300); await page.reload({waitUntil:'load'}); await ready(); await key('c'); await wait(500);
+    assert.equal((await state()).room,65); assert.equal((await state()).save.rooms[77].prefix[9],0);
+    assert.equal((await state()).save.party[3].trained,true);
     assert.equal(errors.length,0,errors.join('\n'));
-    console.log('Browser OK: movement, survivors, saves/reload, pause/help/restart, lift call/panel/passengers/persistence and rope UI; no PHP/JS errors.');
+    console.log('Browser OK: movement, saves/reload, pause/help/restart, lift, rope, typed terminal, mouse commands, truck/passengers/backgrounds/persistence; no PHP/JS errors.');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exit(1);});
