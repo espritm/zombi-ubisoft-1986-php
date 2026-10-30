@@ -50,11 +50,11 @@ Les chronomètres de repos/réanimation proviennent des observations ; l’horlo
 ## Page et publication
 
 `tools/site/shots.sh` régénère les captures avec le moteur. `tools/site/images.py` (Pillow) fabrique les images
-du site et la miniature ; les fichiers restent ignorés. Il copie aussi les images vers `assets/site/`
+du site ; les fichiers restent ignorés. La miniature publique est dessinée sans ressource originale par `tools/site/thumbnail.py`. Il copie aussi les images vers `assets/site/`
 pour l’envoi privé et reproduit localement leur URL `play/private/assets/site/`.
 Après `bin/jumphp build:site`, relancer `images.py` avant `bin/jumphp siteshot` pour créer ce miroir dans `dist/site/`.
 La page utilise les URL privées de play.jumphp.net pour ses métadonnées sociales.
-Envoyer `assets/original/`, `assets/site/` et `assets/thumbnail.png` avec `upload_private_files`, puis pousser le code et `sync_project`.
+Envoyer `assets/original/` et `assets/site/` avec `upload_private_files`, puis pousser le code et `sync_project`.
 Ne jamais ajouter au Git les disquettes, ROMs, dumps, images ou enregistrements d’origine.
 
 Crédits originaux : Ubi Soft, Cadin, Bonan, Daher et Marchiset (1986). Prototype indépendant.
