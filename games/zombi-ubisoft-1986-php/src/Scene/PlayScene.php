@@ -1,175 +1,150 @@
 <?php
-
 namespace App\Scene;
 
-use App\Entity\Coin;
-use App\Entity\Player;
-use JumPHP\Audio\Synth;
-use JumPHP\Entity\EntityManager;
-use JumPHP\Physics\CollisionSystem;
+use App\Model\World;
+use App\View\CpcView;
 use JumPHP\Renderer\Renderer;
 use JumPHP\Scene\AbstractScene;
-use JumPHP\Scene\Camera;
-use JumPHP\Tile\ArrayLoader;
-use JumPHP\Tile\CollisionMask;
-use JumPHP\Tile\TileMap;
-use JumPHP\Tile\TileMapRenderer;
 
-/**
- * A small level: tiles with slopes and a jump-through platform, a player, coins, a camera.
- * Replace the rows by a Tiled map when the game grows: TiledJsonLoader::load($this->engine->config->path('assets/maps/level1.tmj')).
- */
 final class PlayScene extends AbstractScene
 {
-    private const LEVEL = [
-        '..................................................................',
-        '..................................................................',
-        '..........................C.C.C...................................',
-        '.........................=======...............C.C................',
-        '..........C.C.........................................######......',
-        '........=======..........................C.........##.........C..',
-        '.....................................====.............../...######',
-        '...P...........................C.....................//#..........',
-        '#########............C......######...............///####..........',
-        '#########..........#####...########.........C..////#####...C......',
-        '#########\\.......#######../########\\......########.#####..####...',
-        '##########\\.....########./#########\\.....#########.#####..####...',
-        '###########################################################.....##',
-    ];
-
-    private TileMap $map;
-    private Player $player;
-    private Camera $camera;
-    private int $coins = 0;
+    private World $world;
+    private CpcView $view;
+    private bool $help = false;
+    private bool $gallery = false;
     private bool $demo = false;
-    private float $time = 0.0;
-
-    public function __construct(
-        private TileMapRenderer $tiles,
-        private CollisionSystem $collisions,
-        private EntityManager $entities,
-    ) {
-    }
+    private int $galleryRoom = 62;
+    private float $time = 0;
+    private int $demoStage = 0;
 
     public function enter(array $params = []): void
     {
-        $this->demo = !empty($params['demo']);
-        $this->coins = 0;
-        $this->time = 0.0;
-
-        // '#' solid, '=' jump-through, '/' and '\' slopes; 'P' start, 'C' coins
-        $this->map = ArrayLoader::fromRows(self::LEVEL, legend: ['#' => 1, '=' => 2, '/' => 3, '\\' => 4],
-            objects: ['P' => 'start', 'C' => 'coin'], tileWidth: 16, tileset: 'generated:tiles');
-        $tileset = $this->map->tilesets[0];
-        $tileset->masks[1] = CollisionMask::oneWay();
-        $tileset->masks[2] = CollisionMask::slope(16, 16, 1, 16);
-        $tileset->masks[3] = CollisionMask::slope(16, 16, 16, 1);
-        $this->makeTileset();
-
-        $this->entities->clear();
-        $this->entities->register('coin', Coin::class);
-        $this->entities->spawnFromMap($this->map);
-
-        $start = $this->map->object('start');
-        $this->player = new Player($this->sdl(), $start['x'], $start['y']);
-        $this->camera = new Camera($this->width(), $this->height());
-        $this->camera->setBounds(0, 0, $this->map->pixelWidth(), $this->map->pixelHeight());
-        $this->camera->follow($this->player, 0.15, 0.3);
-
-        $this->collisions->removeAllListeners();
-        $this->collisions->on('fell', fn () => $this->respawn());
-
-        if (!$this->sound()->hasSfx('jump')) {
-            $this->sound()->synth('jump', Synth::sweep(250, 600, 0.12));
-            $this->sound()->synth('coin', Synth::sequence([[988, 0.05], [1319, 0.12]]));
-            $this->sound()->synth('fall', Synth::sweep(500, 80, 0.4, 'triangle'));
-        }
+        $directory = $this->engine->config->path('assets/original');
+        $this->world = new World(json_decode(file_get_contents($directory . '/game.json'), true, 512, JSON_THROW_ON_ERROR));
+        $this->view = new CpcView($this->sdl(), $directory);
+        $this->help = false; $this->time = 0; $this->demoStage = 0;
+        $this->gallery = (bool)($params['gallery'] ?? false) || isset($params['room']);
+        $this->demo = (bool)($params['demo'] ?? false);
+        $this->galleryRoom = max(1, min(90, (int)($params['room'] ?? 62)));
+        $this->sound()->stopMusic();
+        if ($params['load'] ?? false) { $this->loadGame(); }
     }
 
     public function update(float $dt): void
     {
         $this->time += $dt;
-        if ($this->actions()->isPressed('pause')) {
-            $this->scenes()->push(PauseScene::class);
+        $a = $this->actions(); $w = $this->world;
+        if ($a->isPressed('help')) { $this->help = !$this->help; return; }
+        if ($this->help) {
+            if ($a->isPressed('confirm') || $a->isPressed('back')) { $this->help = false; }
             return;
         }
-
-        if ($this->demo) {
-            // headless test (game.yaml smoke): a bot runs right and jumps
-            $move = 1;
-            $jump = fmod($this->time, 1.2) < 0.05;
-            $held = fmod($this->time, 1.2) < 0.4;
-        } else {
-            $move = $this->actions()->axis('left', 'right');
-            $jump = $this->actions()->isPressed('jump');
-            $held = $this->actions()->isHeld('jump');
+        if ($this->gallery) {
+            if ($a->isPressed('left')) { $this->galleryRoom = ($this->galleryRoom + 88) % 90 + 1; }
+            if ($a->isPressed('right')) { $this->galleryRoom = $this->galleryRoom % 90 + 1; }
+            if ($a->isPressed('back') || $a->isPressed('confirm')) { $this->gallery = false; }
+            return;
         }
-        if ($jump && $this->player->onGround) {
-            $this->sound()->playSfx('jump');
+        if ($w->ending !== '') {
+            if ($a->isPressed('restart') || $a->isPressed('confirm')) { $this->scenes()->switchTo(TitleScene::class); }
+            return;
         }
-        $this->player->control($move, $jump, $held, $dt);
-        $this->player->update($dt);
-        $this->collisions->move($this->player, $this->map, $dt);
-
-        $this->entities->update($dt, $this->camera);
-        foreach ($this->entities->overlapping($this->player->getBoundingBox()) as $entity) {
-            if ($entity instanceof Coin) {
-                $entity->kill();
-                $this->coins++;
-                $this->sound()->playSfx('coin');
-            }
+        if ($w->mode === 'restart') {
+            if ($a->isPressed('confirm')) { $this->enter(); }
+            elseif ($a->isPressed('back') || $a->isPressed('cancel')) { $w->cancel(); }
+            return;
         }
-        $this->camera->update($dt);
+        if ($w->mode === 'pause') {
+            if ($a->isPressed('back') || $a->isPressed('confirm') || $a->isPressed('pause')) { $w->cancel(); }
+            elseif ($a->isPressed('restart')) { $w->mode = 'restart'; }
+            return;
+        }
+        if ($a->isPressed('back') || $a->isPressed('pause')) {
+            if ($w->mode === 'normal') { $w->mode = 'pause'; } else { $w->cancel(); }
+            return;
+        }
+        if ($a->isPressed('save')) { $this->saveGame(); return; }
+        if ($a->isPressed('load')) { $this->loadGame(); return; }
+        if ($a->isPressed('cancel')) { $w->cancel(); }
+        for ($i = 1; $i <= 4; $i++) { if ($a->isPressed('person' . $i)) { $w->selectPerson($i - 1); } }
+        foreach (['character' => 10, 'inventory' => 18, 'move' => 15] as $key => $action) {
+            if ($a->isPressed($key)) { $w->chooseAction($action); $w->activateAction(); }
+        }
+        foreach (['left' => [-1, 0], 'right' => [1, 0], 'up' => [0, -1], 'down' => [0, 1]] as $key => [$dx, $dy]) {
+            if (!$a->isPressed($key)) { continue; }
+            if ($w->mode === 'object') { $w->moveCursor($dx, $dy); }
+            elseif ($w->mode === 'combat' || ($w->mode === 'normal' && $w->current()['prefix'][6] > 0 && $dx)) { $w->strike($dx); }
+            elseif ($w->mode === 'normal') { $w->chooseAction(($w->action - 1 + ($dx ?: $dy) + 18) % 18 + 1); }
+            elseif (in_array($w->mode, ['direction', 'character', 'inventory', 'container'], true)) { $w->changeChoice($dx ?: $dy); }
+        }
+        if ($a->isPressed('confirm')) { $w->confirm(); }
+        $this->mouse();
+        if ($w->mode === 'save') { $this->saveGame(); }
+        elseif ($w->mode === 'load') { $this->loadGame(); }
+        if ($this->demo && $this->time >= ($this->demoStage + 1) * 2) {
+            match ($this->demoStage++) { 0 => $w->move(3), 1, 2 => $w->move(4), 3 => $w->selectPerson(0), default => null };
+        }
+        $w->advance($dt);
     }
 
-    private function respawn(): void
+    private function mouse(): void
     {
-        $this->sound()->playSfx('fall');
-        $start = $this->map->object('start');
-        $this->player->setXY($start['x'], $start['y']);
-        $this->player->setVelocity(0, 0);
-        $this->camera->centerOn($start['x'], $start['y']);
+        $m = $this->engine->input->getMouse();
+        if (!$m->isPressed()) { return; }
+        $x = (int)$m->x; $y = (int)$m->y; $w = $this->world;
+        if ($y < 38 && $x >= 12 && $x < 172) { $w->selectPerson(intdiv($x - 12, 40)); return; }
+        if ($y >= 168 && $x >= 16 && $x < 304) {
+            $slot = intdiv($x - 16, 32);
+            $w->chooseAction(($w->action - 1 + $slot - 4 + 36) % 18 + 1); $w->activateAction(); return;
+        }
+        if ($w->mode === 'object' && $x >= 8 && $x < 168 && $y >= 64 && $y < 128) {
+            $w->col = intdiv($x - 8, 16); $w->row = intdiv($y - 64, 16); $w->confirm(); return;
+        }
+        if ($x >= 218 && $y >= 54 && $y < 114 && in_array($w->mode, ['direction','character','inventory','container'], true)) {
+            $count = match ($w->mode) {'direction'=>6, 'character'=>4, 'container'=>count($w->containerChoices()), default=>count($w->inventoryChoices())};
+            $choice = intdiv($y - 54, 10);
+            if ($choice < $count) { $w->choice = $choice; $w->confirm(); }
+        }
+    }
+
+    private function saveGame(): void
+    {
+        $ok = $this->engine->storage->writeJson('zombi-v02.json', $this->world->export());
+        $this->world->mode = 'normal'; $this->world->message = $ok ? 'PARTIE SAUVEGARDEE' : 'ECHEC SAUVEGARDE';
+    }
+
+    private function loadGame(): void
+    {
+        try {
+            $save = $this->engine->storage->readJson('zombi-v02.json');
+            if (is_array($save) && $this->world->restore($save)) { return; }
+        } catch (\Throwable) { /* Leave current state intact on a corrupt save. */ }
+        $this->world->mode = 'normal'; $this->world->message = 'AUCUNE SAUVEGARDE VALIDE';
     }
 
     public function render(Renderer $r): void
     {
-        $r->clear([92, 148, 252]);
-        $cx = $this->camera->getX();
-        $cy = $this->camera->getY();
-        // far hills (parallax: they move at a quarter of the camera speed)
-        for ($i = -1; $i < 8; $i++) {
-            $x = $i * 80 - fmod($cx * 0.25, 80);
-            $r->fillCircle($x + 40, $this->height() + 10, 50, [70, 120, 200]);
+        $w = $this->world;
+        if ($w->ending !== '') {
+            $this->view->image($r, $w->ending);
+            $this->view->text($r, 'ENTREE : RETOUR AU TITRE', 64, 184, 'blue'); return;
         }
-        $this->tiles->renderBackground($r, $this->map, $cx, $cy, $this->time);
-        $this->entities->render($r, $this->camera);
-        $this->player->render($r, $cx, $cy);
-        $this->tiles->renderForeground($r, $this->map, $cx, $cy, $this->time);
-
-        $font = $this->font();
-        $font->draw($r, \JumPHP\Util\Lang::t('COINS') . ' ' . $this->coins, 6, 6, 1, [255, 255, 255], 'left', [0, 0, 0]);
+        $this->view->game($r, $w, $this->time);
+        if ($this->gallery) {
+            $this->view->panel($r, 'GALERIE DES 90 DECORS', ['GAUCHE / DROITE : PARCOURIR', 'ENTREE : REVENIR AU JEU']);
+            $this->view->room($r, $w, $this->galleryRoom, 80, 92);
+            $this->view->text($r, sprintf('PIECE %02d / 90', $this->galleryRoom), 104, 174, 'blue');
+        }
+        if ($this->help) { self::helpPanel($this->view, $r); }
+        elseif ($w->mode === 'pause') { $this->view->panel($r, 'PAUSE', ['ENTREE / ECHAP : REPRENDRE', 'R : RECOMMENCER', 'F1 : AIDE']); }
+        elseif ($w->mode === 'restart') { $this->view->panel($r, 'RECOMMENCER LA PARTIE ?', ['ENTREE : CONFIRMER', 'ECHAP : ANNULER']); }
     }
 
-    /** The 4 tiles of the level drawn with GD (a real game loads a PNG: TiledJsonLoader / TileSet image). */
-    private function makeTileset(): void
+    public static function helpPanel(CpcView $v, Renderer $r): void
     {
-        if ($this->sdl()->hasTexture('tileset:generated:tiles')) {
-            return;
-        }
-        $img = imagecreatetruecolor(64, 16);
-        imagesavealpha($img, true);
-        imagealphablending($img, false);
-        imagefill($img, 0, 0, imagecolorallocatealpha($img, 0, 0, 0, 127));
-        $dirt = imagecolorallocate($img, 150, 90, 50);
-        $grass = imagecolorallocate($img, 70, 190, 70);
-        $wood = imagecolorallocate($img, 200, 140, 70);
-        imagefilledrectangle($img, 0, 0, 15, 15, $dirt);                     // 1: block
-        imagefilledrectangle($img, 0, 0, 15, 2, $grass);
-        imagefilledrectangle($img, 16, 0, 31, 4, $wood);                     // 2: jump-through plank
-        imagefilledpolygon($img, [32, 15, 47, 0, 47, 15], $dirt);            // 3: slope up
-        imageline($img, 32, 15, 47, 0, $grass);
-        imagefilledpolygon($img, [48, 0, 63, 15, 48, 15], $dirt);            // 4: slope down
-        imageline($img, 48, 0, 63, 15, $grass);
-        $this->sdl()->createTextureFromGd('tileset:generated:tiles', $img);
+        $v->panel($r, 'ZOMBI - AIDE DU PROTOTYPE', ['FLECHES : ACTION / SELECTION', 'ENTREE / ESPACE : VALIDER',
+            'TAB : ANNULER  ECHAP : PAUSE', '1-4 : SURVIVANT  C : CHOISIR', 'M : SE DEPLACER  I : EQUIPER',
+            'SOURIS : ICONES, OBJETS, PORTRAITS', 'F5 : SAUVER  F9 : CHARGER', 'COMBAT : ALTERNER GAUCHE/DROITE',
+            'PROTOTYPE : QUETE INCOMPLETE.', 'ASCENSEURS, CAMIONS, TERMINAUX', 'ET EQUILIBRAGE RESTENT A PORTER.', 'ENTREE / ECHAP : FERMER']);
     }
 }

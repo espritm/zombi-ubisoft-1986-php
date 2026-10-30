@@ -1,55 +1,46 @@
 <?php
-
 namespace App\Scene;
 
-use JumPHP\Audio\Synth;
-use JumPHP\Kernel\Platform;
+use App\View\CpcView;
 use JumPHP\Renderer\Renderer;
-use JumPHP\Ui\MenuScene;
+use JumPHP\Scene\AbstractScene;
 
-/**
- * First screen: the title and the main menu.
- */
-final class TitleScene extends MenuScene
+final class TitleScene extends AbstractScene
 {
-    protected string $title = 'ZOMBI UBISOFT (1986) PHP';
-    private float $time = 0.0;
+    private CpcView $view;
+    private bool $help = false;
 
     public function enter(array $params = []): void
     {
-        parent::enter($params);
-        // sounds made in PHP: no audio file needed (load real files with $this->sound()->loadSfx())
-        if (!$this->sound()->hasSfx('menu_move')) {
-            $this->sound()->synth('menu_move', Synth::tone(660, 0.04));
-            $this->sound()->synth('menu_confirm', Synth::sequence([[660, 0.05], [990, 0.08]]));
-        }
-    }
-
-    protected function items(): array
-    {
-        $items = [
-            ['PLAY', null, fn () => $this->scenes()->switchTo(PlayScene::class)],
-            ['OPTIONS', null, fn () => $this->scenes()->push(OptionsScene::class)],
-        ];
-        if (Platform::isDesktop()) {
-            $items[] = ['QUIT', null, fn () => $this->engine->quit()];
-        }
-        return $items;
+        $this->help = false;
+        $directory = $this->engine->config->path('assets/original');
+        $this->view = new CpcView($this->sdl(), $directory);
+        $this->sound()->loadMusic('intro', $directory . '/intro.ogg');
+        $this->sound()->playMusic('intro', true);
     }
 
     public function update(float $dt): void
     {
-        $this->time += $dt;
-        parent::update($dt);
+        $a = $this->actions();
+        if ($a->isPressed('help')) { $this->help = !$this->help; return; }
+        if ($this->help) {
+            if ($a->isPressed('confirm') || $a->isPressed('back')) { $this->help = false; }
+            return;
+        }
+        if ($a->isPressed('confirm') || ($this->engine->input->getMouse()->isPressed() && $this->engine->input->getMouse()->y >= 152)) {
+            $this->scenes()->switchTo(PlayScene::class);
+        }
+        elseif ($a->isPressed('character')) { $this->scenes()->switchTo(PlayScene::class, ['load' => true]); }
+        elseif ($a->isPressed('gallery')) { $this->scenes()->switchTo(PlayScene::class, ['gallery' => true]); }
     }
 
-    protected function renderBackground(Renderer $r): void
+    public function render(Renderer $r): void
     {
-        $r->clear([16, 16, 40]);
-        // a few moving stars
-        for ($i = 0; $i < 40; $i++) {
-            $x = fmod($i * 37.0 + $this->time * (10 + $i % 5 * 6), $this->width());
-            $r->fillRect($x, ($i * 53) % $this->height(), 1, 1, [120 + $i * 3 % 135, 120, 200]);
-        }
+        $this->view->image($r, 'title');
+        $r->fillRect(0, 152, 320, 48, [0, 0, 0]);
+        $this->view->text($r, 'ZOMBI - PROTOTYPE CPC 0.2', 56, 156, 'blue');
+        $this->view->text($r, 'ENTREE:JOUER  C:CONTINUER', 64, 169);
+        $this->view->text($r, 'F1:AIDE  G:90 DECORS', 80, 182);
+        if ($this->help) { PlayScene::helpPanel($this->view, $r); }
     }
 }

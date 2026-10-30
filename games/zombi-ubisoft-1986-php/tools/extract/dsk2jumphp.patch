@@ -1,0 +1,125 @@
+diff --git a/docs/emulator.md b/docs/emulator.md
+index 9443d4a..1cc18b0 100644
+--- a/docs/emulator.md
++++ b/docs/emulator.md
+@@ -28,6 +28,14 @@ BASIC is ready around frame 100; type after that.
+ 
+ ## Input
+ 
++`-b-after FRAME` delays breakpoint dumps until FRAME, avoiding hits in loader/music
++code that occupied the same address before the game finished loading.
++
++`-swap FRAME:path.dsk` changes the inserted disk at the start of FRAME (up to 16 changes).
++CPU, RAM and head position are preserved; an unfinished transfer is cancelled. Disk writes
++remain in memory only and are discarded when that disk is removed. Use keys separately
++to acknowledge a game's request to turn the disk over.
++
+ | Option | Effect |
+ |---|---|
+ | `-type 'FRAME:text'` | Types text from FRAME (3 frames down, 3 up per key). `\n` = RETURN. Upper case and `"|!#$%&'()*+=?<>_` press SHIFT. Several `-type` allowed. |
+diff --git a/emulator/cpc.c b/emulator/cpc.c
+index 9140e35..b77bd69 100644
+--- a/emulator/cpc.c
++++ b/emulator/cpc.c
+@@ -361,6 +361,7 @@ static void usage(void) {
+                     "  -rom os.rom [-urom 7:amsdos.rom]   boot with the machine's ROMs\n"
+                     "  -type 'frame:RUN\"DISC\\n'            type text   -k 'frame:key+,frame:key-'  keys\n"
+                     "  -pc hex  -load file@hex             no ROM: start address, raw binaries\n"
++                    "  -swap frame:path.dsk               insert another disk at a frame\n"
+                     "  -s f1,f2  -S n                      screenshots     -d f1,f2   memory dumps\n"
+                     "  -w lo-hi (x8)  -W lo-hi  -R lo-hi   watched writes, writers, readers\n"
+                     "  -r pc1,pc2 [-X 32]  -t lo-hi  -b pc  registers at PCs, trace, breakpoint dumps\n"
+@@ -376,7 +377,9 @@ int main(int argc, char **argv) {
+     const char *shots = NULL, *dumps = NULL;
+     int shot_every = 0, trace_lo = -1, trace_hi = -1, start_pc = 0x100, have_pc = 0;
+     const char *loads[16];
+-    int nloads = 0;
++    int nloads = 0, break_after = 0;
++    int swap_frames[16], nswaps = 0;
++    const char *swap_paths[16];
+     for (int i = 4; i < argc; i += 2) {
+         if (i + 1 >= argc) usage();
+         const char *o = argv[i], *v = argv[i + 1];
+@@ -390,6 +393,12 @@ int main(int argc, char **argv) {
+             nwatch++;
+         }
+         else if (!strcmp(o, "-b")) sscanf(v, "%x", &break_pc);
++        else if (!strcmp(o, "-b-after")) {
++            char *end;
++            long f = strtol(v, &end, 10);
++            if (!*v || *end || f < 0 || f > 2147483647L) usage();
++            break_after = (int)f;
++        }
+         else if (!strcmp(o, "-W")) sscanf(v, "%x-%x", &uw_lo, &uw_hi);
+         else if (!strcmp(o, "-R")) sscanf(v, "%x-%x", &ur_lo, &ur_hi);
+         else if (!strcmp(o, "-r")) { for (const char *p = v; p && nreg < 16; p = strchr(p, ',') ? strchr(p, ',') + 1 : NULL) sscanf(p, "%x", &reg_pc[nreg++]); }
+@@ -401,6 +410,15 @@ int main(int argc, char **argv) {
+         else if (!strcmp(o, "-x")) sscanf(v, "%x-%x", &alarm_lo, &alarm_hi);
+         else if (!strcmp(o, "-pc")) { sscanf(v, "%x", &start_pc); have_pc = 1; }
+         else if (!strcmp(o, "-load") && nloads < 16) loads[nloads++] = v;
++        else if (!strcmp(o, "-swap") && nswaps < 16) {
++            const char *colon = strchr(v, ':');
++            if (!colon || colon == v || !colon[1]) usage();
++            char *end;
++            long f = strtol(v, &end, 10);
++            if (end != colon || f < 0 || f > 2147483647L) usage();
++            swap_frames[nswaps] = (int)f;
++            swap_paths[nswaps++] = colon + 1;
++        }
+         else if (!strcmp(o, "-rom")) {
+             long n; uint8_t *d = read_file(v, &n);
+             rom_lower = d;                      /* 16 KB OS, or 32 KB OS + BASIC (the usual cpc6128.rom) */
+@@ -451,6 +469,22 @@ int main(int argc, char **argv) {
+ 
+     long line_t = 0;
+     for (int frame = 0; frame < frames; frame++) {
++        for (int q = 0; q < nswaps; q++) if (swap_frames[q] == frame) {
++            /* A scripted physical disk change. Preserve CPU/RAM and head position,
++             * discard the old disk's in-memory writes and any unfinished transfer. */
++            free(disk_image);
++            disk_image = NULL;
++            memset(disk, 0, sizeof disk);
++            disk_tracks = disk_sides = 0;
++            fdc_sector = NULL;
++            fdc_phase = FDC_IDLE;
++            fdc_id_index = fdc_data_pos = 0;
++            if (!load_dsk(swap_paths[q])) {
++                fprintf(stderr, "cannot swap disk to %s at frame %d\n", swap_paths[q], frame);
++                return 1;
++            }
++            log_event("disk swap frame %d path=%s", frame, swap_paths[q]);
++        }
+         for (int q = 0; q < nkey_events; q++)
+             if (key_events[q].frame == frame) {
+                 if (key_events[q].down) keys[key_events[q].row] |= 1 << key_events[q].bit;
+@@ -481,7 +515,7 @@ int main(int argc, char **argv) {
+                 for (int q = 0; q < nrefill; q++) if (cpu.pc == refill_pc[q] && refill_n[q] > 0 && mem_read(refill_addr[q]) == 0) {
+                     refill_n[q]--; mem_write(refill_addr[q], refill_val[q]);
+                 }
+-                if (cpu.pc == break_pc && break_hits < 50) {
++                if (frame >= break_after && cpu.pc == break_pc && break_hits < 50) {
+                     char bn[64]; snprintf(bn, sizeof bn, "bp%04x-%d", break_pc, break_hits++);
+                     dump_named(dir, bn);
+                 }
+diff --git a/tests/run.sh b/tests/run.sh
+index 2a0488f..68e5bde 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -42,4 +42,17 @@ if [ -n "${CPC_ROM:-}" ]; then
+   python3 -I tools/cpc.py screen "$OUT/rom/dump-00299.bin" "$OUT/rom/basic.png"
+   echo "ROM boot: look at $OUT/rom/basic.png (BASIC prompt, 'print 6*7', 42)"
+ fi
++mkdir -p "$OUT/swap"
++emulator/cpc "$OUT/test.dsk" "$OUT/swap" 60 -swap "20:$OUT/test-ext.dsk" -swap "40:$OUT/test.dsk" -d 50 2>/dev/null
++cmp -s "$OUT/std/dump-00050.bin" "$OUT/swap/dump-00050.bin" || fail "disk swap changed CPU/RAM"
++grep -q '^disk swap frame 20 ' "$OUT/swap/log.txt" || fail "first disk swap"
++grep -q '^disk swap frame 40 ' "$OUT/swap/log.txt" || fail "second disk swap"
++if emulator/cpc "$OUT/test.dsk" "$OUT/swap" 2 -swap "0:$OUT/missing.dsk" 2>/dev/null; then
++  fail "missing swap disk accepted"
++fi
++mkdir -p "$OUT/break-now" "$OUT/break-later"
++emulator/cpc "$OUT/test.dsk" "$OUT/break-now" 2 -b 100 2>/dev/null
++emulator/cpc "$OUT/test.dsk" "$OUT/break-later" 2 -b 100 -b-after 1 2>/dev/null
++[ -s "$OUT/break-now/bp0100-0.bin" ] || fail "initial breakpoint missing"
++[ ! -e "$OUT/break-later/bp0100-0.bin" ] || fail "breakpoint before requested frame"
+ echo "all tests passed"

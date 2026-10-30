@@ -5,4 +5,18 @@
 # Other sources: pad0:a|b|x|y|lb|rb|lt|rt|select|start|ls|rs (gamepad, same names everywhere), pad0:left|right|up|down
 # (d-pad or left stick), pad0:button3 (raw), touch:left|right|up|down|tap, mouse:1
 actions:
-  jump: [Space, Up, W, Z, pad0:a, touch:tap]
+  confirm: [Return, Space, pad0:a]
+  back: [Escape, pad0:b]
+  cancel: [Tab, pad0:y]
+  help: [F1, H]
+  inventory: [I]
+  move: [M]
+  character: [C]
+  gallery: [G]
+  restart: [R]
+  save: [F5]
+  load: [F9]
+  person1: ['1']
+  person2: ['2']
+  person3: ['3']
+  person4: ['4']
