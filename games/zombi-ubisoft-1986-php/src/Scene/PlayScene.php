@@ -75,7 +75,7 @@ final class PlayScene extends AbstractScene
             if ($w->mode === 'object') { $w->moveCursor($dx, $dy); }
             elseif ($w->mode === 'combat' || ($w->mode === 'normal' && $w->current()['prefix'][6] > 0 && $dx)) { $w->strike($dx); }
             elseif ($w->mode === 'normal') { $w->chooseAction(($w->action - 1 + ($dx ?: $dy) + 18) % 18 + 1); }
-            elseif (in_array($w->mode, ['direction', 'character', 'inventory', 'container'], true)) { $w->changeChoice($dx ?: $dy); }
+            elseif (in_array($w->mode, ['direction', 'character', 'inventory', 'container', 'lift'], true)) { $w->changeChoice($dx ?: $dy); }
         }
         if ($a->isPressed('confirm')) { $w->confirm(); }
         $this->mouse();
@@ -100,8 +100,8 @@ final class PlayScene extends AbstractScene
         if ($w->mode === 'object' && $x >= 8 && $x < 168 && $y >= 64 && $y < 128) {
             $w->col = intdiv($x - 8, 16); $w->row = intdiv($y - 64, 16); $w->confirm(); return;
         }
-        if ($x >= 218 && $y >= 54 && $y < 114 && in_array($w->mode, ['direction','character','inventory','container'], true)) {
-            $count = match ($w->mode) {'direction'=>6, 'character'=>4, 'container'=>count($w->containerChoices()), default=>count($w->inventoryChoices())};
+        if ($x >= 218 && $y >= 54 && $y < 114 && in_array($w->mode, ['direction','character','inventory','container','lift'], true)) {
+            $count = match ($w->mode) {'direction'=>6, 'lift'=>5, 'character'=>4, 'container'=>count($w->containerChoices()), default=>count($w->inventoryChoices())};
             $choice = intdiv($y - 54, 10);
             if ($choice < $count) { $w->choice = $choice; $w->confirm(); }
         }
@@ -145,6 +145,6 @@ final class PlayScene extends AbstractScene
         $v->panel($r, 'ZOMBI - AIDE DU PROTOTYPE', ['FLECHES : ACTION / SELECTION', 'ENTREE / ESPACE : VALIDER',
             'TAB : ANNULER  ECHAP : PAUSE', '1-4 : SURVIVANT  C : CHOISIR', 'M : SE DEPLACER  I : EQUIPER',
             'SOURIS : ICONES, OBJETS, PORTRAITS', 'F5 : SAUVER  F9 : CHARGER', 'COMBAT : ALTERNER GAUCHE/DROITE',
-            'PROTOTYPE : QUETE INCOMPLETE.', 'ASCENSEURS, CAMIONS, TERMINAUX', 'ET EQUILIBRAGE RESTENT A PORTER.', 'ENTREE / ECHAP : FERMER']);
+            'ASCENSEUR : ACTIONNER LE PANNEAU', 'CORDE : ACTIVER AVANT DE PASSER', 'CAMIONS ET QUETE ENCORE INCOMPLETS', 'ENTREE / ECHAP : FERMER']);
     }
 }

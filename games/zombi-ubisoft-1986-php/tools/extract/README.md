@@ -39,5 +39,6 @@ For the development workspace, `package.py` alone can repackage an existing pare
 backgrounds. These captures establish rendering, not natural access to each room.
 `verify-extraction.py` compares all 90 original scenes to their reconstruction pixel for pixel.
 `REGLES-VERIFIEES.md` and `QUETES-ET-FINS.md` explain the controlled preconditions for rules and endings.
-The PHP prototype deliberately labels unimplemented lifts, trucks and terminals; its combat balancing is approximate.
+`ASCENSEUR-ET-CORDE.md` documents the eight additional lift/rope checks and controlled starting conditions.
+The PHP prototype deliberately labels unimplemented trucks and terminals; its combat balancing is approximate.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

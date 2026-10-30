@@ -5,7 +5,8 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.3.0';
+    public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
         5 => 'CONSOMMER', 6 => 'DORMIR', 7 => 'REVEILLER', 8 => 'OUVRIR', 9 => 'FERMER',
         10 => 'PERSONNAGE', 11 => 'PAUSE', 12 => 'RECOMMENCER', 13 => 'SAUVEGARDER',
@@ -41,6 +42,7 @@ final class World
     private int $lastSide = 0;
     private float $elapsed = 0.0;
     private int $lastHour = 10;
+    private array $initialMap = [];
 
     public function __construct(array $data)
     {
@@ -61,6 +63,7 @@ final class World
         }
         $this->containers = $data['containers'];
         foreach ($data['objects'] as $o) { $this->objects[$o['id']] = $o; }
+        $this->initialMap = $this->map;
     }
 
     public function roomId(?int $person = null): int
@@ -155,8 +158,8 @@ final class World
 
     public function changeChoice(int $delta): void
     {
-        $count = $this->mode === 'direction' ? 6 : ($this->mode === 'character' ? 4 :
-            ($this->mode === 'container' ? count($this->containerChoices()) : count($this->inventoryChoices())));
+        $count = $this->mode === 'lift' ? 5 : ($this->mode === 'direction' ? 6 : ($this->mode === 'character' ? 4 :
+            ($this->mode === 'container' ? count($this->containerChoices()) : count($this->inventoryChoices()))));
         $this->choice = ($this->choice + $delta + max(1, $count)) % max(1, $count);
     }
 
@@ -173,6 +176,7 @@ final class World
             case 'normal': $this->activateAction(); return;
             case 'character': $this->selectPerson($this->choice); return;
             case 'direction': $this->direction = $this->choice; $this->move($this->choice); return;
+            case 'lift': $this->moveLift($this->choice); return;
             case 'inventory': $this->pickInventory(); return;
             case 'container':
                 $item = $this->containerChoices()[$this->choice] ?? 0;
@@ -198,6 +202,12 @@ final class World
         if ($this->person()['state'] !== 0) { return false; }
         $flag = $this->current()['prefix'][self::EXIT_FIELDS[$direction]];
         $target = $this->person()['position'] + self::DELTAS[$direction];
+        if ($flag === 250) { return $this->crossWindow(); }
+        // Original #9C1A refuses entry to the top landing while its south passage is locked.
+        if ($direction === 0 && ($this->map[$target] ?? 0) === 59 &&
+            !in_array($this->rooms[59]['prefix'][2], [0, 20], true)) {
+            $this->message = 'ACCES AU DERNIER ETAGE FERME'; return false;
+        }
         if (!in_array($flag, [0, 20], true) || !isset($this->map[$target])) {
             $this->message = in_array($flag, [30, 240, 250], true) ? 'PASSAGE FERME OU SPECIAL' : 'PASSAGE IMPOSSIBLE';
             return false;
@@ -206,6 +216,60 @@ final class World
         $this->message = self::DIRECTIONS[$direction];
         $this->pressure = 0; $this->battleTime = 0;
         return true;
+    }
+
+    /** #9A2B/#9B11: the cabin is room 63, moved between five map cells. */
+    private function relocateLift(int $target, bool $called): void
+    {
+        $old = array_search(63, $this->map, true);
+        if ($old === false) { return; }
+        $oldLanding = $this->map[$old + 8] ?? null;
+        $newLanding = $this->map[$target + 8] ?? null;
+        foreach ($this->party as &$person) {
+            if ($person['position'] === $old) { $person['position'] = $target; }
+        }
+        unset($person);
+        unset($this->map[$old]); $this->map[$target] = 63;
+        if ($oldLanding !== null && (!$called || $this->rooms[$oldLanding]['prefix'][2] < 15)) {
+            $this->rooms[$oldLanding]['prefix'][2] = 10;
+        }
+        if ($newLanding !== null && ($called || $this->rooms[$newLanding]['prefix'][2] < 15)) {
+            $this->rooms[$newLanding]['prefix'][2] = 0;
+        }
+        $this->pressure = 0; $this->battleTime = 0;
+    }
+
+    public function moveLift(int $floor): bool
+    {
+        if ($floor < 0 || $floor > 4 || $this->roomId() !== 63 || $this->person()['state'] !== 0) { return false; }
+        $this->relocateLift(2 + 56 * $floor, false);
+        $this->mode = 'normal'; $this->message = self::FLOORS[$floor];
+        return true;
+    }
+
+    /** #9CA4: leave the rope in the last free source cell and reach its facade room. */
+    private function crossWindow(): bool
+    {
+        $source = $this->roomId();
+        $destination = [35 => 64, 38 => 66, 46 => 65][$source] ?? null;
+        if ($destination === null) { $this->message = 'PASSAGE SPECIAL INCONNU'; return false; }
+        if ($this->person()['used'] !== 41) {
+            $this->party[$this->active]['state'] = 255;
+            $this->party[$this->active]['used'] = 0;
+            $this->mode = 'character'; $this->choice = $this->active;
+            $this->message = 'CHUTE ! CHOISIR UN SURVIVANT'; return false;
+        }
+        $free = null;
+        for ($i = 39; $i >= 1; $i--) {
+            if ($this->rooms[$source]['cells'][$i] === 0) { $free = $i; break; }
+        }
+        $target = array_search($destination, $this->map, true);
+        if ($free === null || $target === false) { $this->message = 'PAS DE PLACE POUR LA CORDE'; return false; }
+        $this->rooms[$source]['cells'][$free] = 41;
+        $this->removeItem(41);
+        $this->party[$this->active]['position'] = $target;
+        $this->pressure = 0; $this->battleTime = 0;
+        $this->message = 'DESCENTE PAR LA CORDE'; return true;
     }
 
     private function addItem(int $item): bool
@@ -319,7 +383,7 @@ final class World
             }
             unset($person); $this->replaceObject($item, $item - 1); $this->message = 'REVEILLE';
         }
-        $this->mode = 'normal';
+        if ($this->mode !== 'lift') { $this->mode = 'normal'; }
     }
 
     private function placeObject(int $item): bool
@@ -365,7 +429,18 @@ final class World
                 if ($this->fuelTank === 0) { $this->message = "PLUS D'ESSENCE"; return; }
                 $this->ending = 'victory'; return;
             case 71: $this->message = 'CAMIONS : PORTAGE EN COURS'; return;
-            case 73: case 74: $this->message = 'ASCENSEUR : PORTAGE EN COURS'; return;
+            case 73:
+                $target = $this->person()['position'] - 8;
+                if (in_array($target, [2, 58, 114, 170, 226], true)) {
+                    $this->relocateLift($target, true); $this->message = 'ASCENSEUR APPELE';
+                } else { $this->message = 'APPEL IMPOSSIBLE'; }
+                return;
+            case 74:
+                if ($this->roomId() === 63) {
+                    $this->mode = 'lift'; $this->choice = intdiv($this->person()['position'] - 2, 56);
+                    $this->message = 'CHOISIR UN ETAGE';
+                }
+                return;
             case 65: case 70: case 75: $this->message = 'TERMINAL : PORTAGE EN COURS'; return;
             default: $this->message = 'AUCUN EFFET'; return;
         }
@@ -376,7 +451,7 @@ final class World
     {
         $p = &$this->party[$this->active]; $p['used'] = $p['held'];
         $item = $p['held']; $this->mode = 'normal';
-        if (in_array($item, [0, 43, 45], true)) { $this->message = $item ? self::itemName($item) . ' ACTIVE' : 'OBJET DESACTIVE'; return; }
+        if (in_array($item, [0, 41, 43, 45], true)) { $this->message = $item ? self::itemName($item) . ' ACTIVE' : 'OBJET DESACTIVE'; return; }
         if ($item === 42) {
             $cells = $this->current()['cells'];
             if (!in_array(52, $cells, true)) { $this->message = 'POSER LE BIDON A PROXIMITE'; return; }
@@ -492,21 +567,29 @@ final class World
 
     public function export(): array
     {
-        return ['version' => self::VERSION, 'rooms' => $this->rooms, 'party' => $this->party,
+        return ['version' => self::VERSION, 'map' => $this->map, 'rooms' => $this->rooms, 'party' => $this->party,
             'containers' => $this->containers, 'active' => $this->active, 'minutes' => $this->minutes,
             'electricity' => $this->electricity, 'fuelCan' => $this->fuelCan, 'fuelTank' => $this->fuelTank];
     }
 
     public function restore(array $save): bool
     {
-        if (($save['version'] ?? '') !== self::VERSION || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
+        $map = ($save['version'] === '0.2.0') ? $this->initialMap : ($save['map'] ?? null);
+        if (!is_array($map)) { return false; }
+        $lift = array_keys($map, 63, true);
+        if (count($lift) !== 1 || !in_array($lift[0], [2, 58, 114, 170, 226], true)) { return false; }
+        $fixed = array_filter($map, fn ($id) => $id !== 63);
+        $expected = array_filter($this->initialMap, fn ($id) => $id !== 63);
+        ksort($fixed); ksort($expected);
+        if ($fixed !== $expected) { return false; }
         foreach ($save['party'] as $p) {
             if (!is_array($p) || !isset($p['name'], $p['position'], $p['inside'], $p['state'], $p['gauges'], $p['bag'], $p['held'],
                 $p['max'], $p['ticks'], $p['used'], $p['awakeHours'], $p['foodHours'], $p['trained']) ||
                 !is_array($p['bag']) || count($p['bag']) !== 4 || !is_array($p['gauges']) || count($p['gauges']) !== 3 ||
                 !is_array($p['max']) || count($p['max']) !== 3 ||
-                ($p['inside'] !== 0 && !isset($this->rooms[$p['inside']])) || !isset($this->map[$p['position']])) { return false; }
+                ($p['inside'] !== 0 && !in_array($p['inside'], [87, 88, 89, 90], true)) || !isset($map[$p['position']])) { return false; }
             if (!is_string($p['name']) || !array_is_list($p['bag']) || !array_is_list($p['gauges']) || !array_is_list($p['max']) ||
                 !is_numeric($p['ticks']) || !is_finite((float)$p['ticks']) || $p['ticks'] < 0 || !is_bool($p['trained'])) { return false; }
             foreach (['position', 'inside', 'state', 'awakeHours', 'foodHours'] as $key) {
@@ -535,7 +618,7 @@ final class World
                 if (!is_int($item) || $item < 0 || $item > 75) { return false; }
             }
         }
-        $this->rooms = $save['rooms']; $this->party = $save['party']; $this->containers = $save['containers'];
+        $this->rooms = $save['rooms']; $this->party = $save['party']; $this->containers = $save['containers']; $this->map = $map;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);

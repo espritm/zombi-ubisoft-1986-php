@@ -38,7 +38,7 @@ final class TitleScene extends AbstractScene
     {
         $this->view->image($r, 'title');
         $r->fillRect(0, 152, 320, 48, [0, 0, 0]);
-        $this->view->text($r, 'ZOMBI - PROTOTYPE CPC 0.2', 56, 156, 'blue');
+        $this->view->text($r, 'ZOMBI - PROTOTYPE CPC 0.3', 56, 156, 'blue');
         $this->view->text($r, 'ENTREE:JOUER  C:CONTINUER', 64, 169);
         $this->view->text($r, 'F1:AIDE  G:90 DECORS', 80, 182);
         if ($this->help) { PlayScene::helpPanel($this->view, $r); }

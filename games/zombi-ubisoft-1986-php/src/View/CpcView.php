@@ -82,7 +82,7 @@ final class CpcView
         $r->fillRect(100, 140, 120, 12, [0, 0, 0]);
         $shown = strlen($message) > 14 ? substr($message . $message, $offset, 14) : trim($message);
         $this->text($r, $shown, 104, 142);
-        $this->text($r, 'PROTOTYPE 0.2  F1:AIDE', 8, 154, 'blue');
+        $this->text($r, 'PROTOTYPE 0.3  F1:AIDE', 8, 154, 'blue');
         for ($slot = 0; $slot < 9; $slot++) {
             $action = (($w->action - 1 + $slot - 4 + 36) % 18) + 1;
             $this->image($r, 'actions', 16 + $slot * 32, 168, [(($action + 3) % 18) * 32, 0, 32, 32], 32, 32);
@@ -96,10 +96,11 @@ final class CpcView
         if ($w->mode === 'object') {
             $r->drawRect(8 + $w->col * 16, 64 + $w->row * 16, 16, 16, [0, 128, 255]);
         }
-        if (in_array($w->mode, ['inventory', 'container', 'direction', 'character'], true)) {
+        if (in_array($w->mode, ['inventory', 'container', 'direction', 'character', 'lift'], true)) {
             $r->fillRect(218, 52, 102, 62, [0, 0, 0]);
             $choices = match ($w->mode) {
                 'direction' => World::DIRECTIONS,
+                'lift' => World::FLOORS,
                 'character' => array_column($w->party, 'name'),
                 'container' => array_map(World::itemName(...), $w->containerChoices()),
                 default => array_map(fn ($c) => World::itemName($c['item']), $w->inventoryChoices()),

@@ -40,11 +40,17 @@ if (-not $ReuseCaptures) {
     foreach ($argsForProbe in @(@('probe-directions.py'),@('probe-directions.py','--terrace'),@('probe-directions.py','--stairs'),
         @('probe-inventory.py'),@('capture-rooms.py','38'),@('capture-rooms.py','--lit'),@('rule-runner.py'),
         @('probe-recovery.py'),@('probe-time-combat.py'),@('probe-combat-input.py'),@('probe-light.py'),
-        @('probe-weapons.py'),@('probe-electricity.py'),@('probe-vehicle.py'),@('probe-fuel-chain.py'),@('probe-global-defeat.py'))) {
+        @('probe-weapons.py'),@('probe-electricity.py'),@('probe-vehicle.py'),@('probe-fuel-chain.py'),@('probe-global-defeat.py'),
+        @('probe-lifts.py','36','0','--passenger'),@('probe-lifts.py','63','0'),@('probe-lifts.py','63','1'),
+        @('probe-rope.py','35','1'),@('probe-rope.py','38','0'),@('probe-rope.py','38','1'),@('probe-rope.py','46','1'))) {
         Step (@('python3','-I',"/workspace/analysis/$($argsForProbe[0])") + @($argsForProbe | Select-Object -Skip 1))
+        # Position-controlled experiments below need the world table from the first boot.
+        if ($argsForProbe[0] -eq 'probe-directions.py' -and $argsForProbe.Count -eq 1) {
+            Step @('python3','-I','/workspace/analysis/export-world.py')
+        }
     }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null
