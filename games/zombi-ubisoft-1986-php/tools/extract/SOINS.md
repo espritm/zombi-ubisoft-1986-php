@@ -1,5 +1,8 @@
 # Soins — version 0.12
 
+Les effets périodiques ajoutés en 0.13 sont décrits dans
+[MALADIE-ET-CADAVRES.md](MALADIE-ET-CADAVRES.md). Les limites ci-dessous concernent la version 0.12.
+
 ## Mesures CPC
 
 `probe-healing.py` place Patrick sur le toit, lui fournit l'objet 33 et prépare

@@ -85,6 +85,15 @@ Invalid targets and modern cancellation do not refund it; pause stops it and sav
 Native #8AF0 clobbers B, so #943F cannot decrement sickness; do not invent a cure. Periodic illness remains unported.
 See `tools/extract/SOINS.md` (52 native checks), HealingTest and `tools/browser-healing.cjs` (controlled equipment/gauges).
 Other special exits and secondary item uses also remain incomplete.
+Version 0.13 persists exposure (+23), illness (+34) and a separate 16-bit healthTicks clock.
+At 15104 ticks, the normal loop processes one health pass; menus/combat defer it, pause stops it.
+Illness in state <32 subtracts 10 S; S=10 stays alive at zero, S<10 becomes state 64/S0 without changing F/H.
+Nearby room corpse count or markers 29–32 subtract 4 S once, regardless of count/vehicle; byte underflow preserves wrapped S and sets state 255.
+Nonfatal zombie/party-zombie melee adds 2*damage to exposure modulo 256. Raider, ranged and fatal hits do not add it.
+Native #8AF0 also clobbers the infection threshold in #7D88, so this roll cannot generate new illness; do not invent a probability.
+Older saves 0.2–0.12 default the two bytes to zero and healthTicks to enemyTicks. Existing wounds remain untouched.
+NPC timing remains separately ported; hunger/fatigue and party-body cleanup remain partial.
+See `tools/extract/MALADIE-ET-CADAVRES.md` (93 native checks), IllnessTest and `tools/browser-illness.cjs` (controlled fixtures).
 Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.

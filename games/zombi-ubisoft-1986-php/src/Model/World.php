@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.12.0';
+    public const VERSION = '0.13.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -60,6 +60,7 @@ final class World
     private int $lastSide = -1;
     private ?int $selectedTarget = null;
     private float $healingTicks = 0.0;
+    private float $healthTicks = 0.0;
     private int $lastHour = 10;
     private array $initialMap = [];
 
@@ -78,7 +79,8 @@ final class World
             $this->party[] = ['name' => $c['name'], 'position' => hexdec($c['map_pointer']) - 0x6726,
                 'inside' => 0, 'bag' => array_slice($raw, 24, 4), 'held' => $raw[28], 'used' => 0,
                 'gauges' => [$raw[18], $raw[19], $raw[17]], 'max' => [$raw[21], $raw[22], $raw[20]],
-                'state' => 0, 'ticks' => 0.0, 'awakeHours' => 0, 'foodHours' => 0, 'trained' => false];
+                'state' => 0, 'ticks' => 0.0, 'awakeHours' => 0, 'foodHours' => 0, 'trained' => false,
+                'exposure' => $raw[23], 'illness' => $raw[34]];
         }
         $this->containers = $data['containers'];
         foreach ($data['objects'] as $o) { $this->objects[$o['id']] = $o; }
@@ -779,7 +781,12 @@ final class World
         $this->battleTime += $dt;
         if ($this->battleTime < 4.0) { return; }
         $this->battleTime = fmod($this->battleTime,4.0);
-        if ($this->randomScore() < ($this->opponent()['hp'] ?? 0)) { $hit = ($this->randomBits(3) + 6) >> 1; $this->combatDamage($hit); }
+        if ($this->randomScore() < ($this->opponent()['hp'] ?? 0)) {
+            $hit = ($this->randomBits(3) + 6) >> 1;
+            $exposes = !$this->raidersArrived || ($this->opponent()['person'] ?? null) !== null;
+            $this->combatDamage($hit);
+            if ($exposes && $this->person()['state'] === 0) { $this->party[$this->active]['exposure'] = ($this->person()['exposure'] + 2 * $hit) & 255; }
+        }
         if ($this->person()['state'] !== 0) { $this->peak = 0; return; }
         if ($this->peak > 0) {
             $bonus = [34=>6,35=>6,36=>8,37=>6,38=>10,39=>8][$this->person()['used']] ?? 0;
@@ -920,10 +927,34 @@ final class World
         }
     }
 
+    /** #7D67–#7DCD: existing illness and nearby corpses, in the original byte order. */
+    private function periodicHealth(): void
+    {
+        $activeState = $this->person()['state'];
+        foreach ($this->party as &$p) {
+            if ($p['state'] < 32 && $p['illness'] > 0) {
+                if ($p['gauges'][2] < 10) { $p['gauges'][2] = 0; $p['state'] = 64; $p['ticks'] = 0.0; }
+                else { $p['gauges'][2] -= 10; }
+            }
+            // The apparent infection roll cannot succeed: #8AF0 overwrites its B threshold.
+            $room = $this->rooms[$this->map[$p['position']]];
+            if ($room['prefix'][8] > 0 || count(array_intersect($room['cells'],[29,30,31,32])) > 0) {
+                $p['gauges'][2] = ($p['gauges'][2] - 4) & 255;
+                if ($p['gauges'][2] >= 128) { $p['state'] = 255; }
+            }
+        }
+        unset($p);
+        if ($activeState === 0 && $this->party[$this->active]['state'] >= 32) {
+            $this->resetCombat(); $this->mode = 'character'; $this->choice = $this->active; $this->message = 'CHOISIR UN SURVIVANT';
+        }
+    }
+
     public function advance(float $dt): void
     {
         if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
         $this->healingTicks = max(0,$this->healingTicks - $dt * 50);
+        $this->healthTicks = fmod($this->healthTicks + $dt * 50,65536);
+        if ($this->mode === 'normal' && $this->healthTicks >= 15104) { $this->healthTicks = 0; $this->periodicHealth(); }
         $wasEnemy = $this->opponent() !== null; $wasAiming = $this->mode === 'aim';
         $this->minutes += $dt * 0.2;
         // Independent of displayed hours: the original tests the high timer byte against #3B.
@@ -976,12 +1007,12 @@ final class World
             'raidersArrived' => $this->raidersArrived, 'zombieTarget' => $this->zombieTarget,
             'enemyTicks' => $this->enemyTicks, 'enemySeed' => $this->enemySeed,
             'alertTicks' => $this->alertTicks, 'rangedPending' => $this->rangedPending, 'rangedArmed' => $this->rangedArmed,
-            'healingTicks' => $this->healingTicks];
+            'healingTicks' => $this->healingTicks, 'healthTicks' => $this->healthTicks];
     }
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -994,6 +1025,8 @@ final class World
         $pending = $save['rangedPending'] ?? ($save['version'] === self::VERSION ? null : false);
         $armed = $save['rangedArmed'] ?? ($save['version'] === self::VERSION ? null : false);
         $healing = $save['healingTicks'] ?? ($save['version'] === self::VERSION ? null : 0.0);
+        $health = $save['healthTicks'] ?? ($save['version'] === self::VERSION ? null : $ticks);
+        if ((!is_int($health) && !is_float($health)) || !is_finite((float)$health) || $health < 0 || $health >= 65536) { return false; }
         if ((!is_int($healing) && !is_float($healing)) || !is_finite((float)$healing) || $healing < 0 || $healing > 15000) { return false; }
         if (!is_int($frozen) || $frozen < 0 || $frozen > 255 || !is_bool($raiders) ||
             !is_int($target) || $target < 0 || $target > 255 ||
@@ -1009,8 +1042,15 @@ final class World
         $expected = array_filter($this->initialMap, fn ($id) => $id !== 63);
         ksort($fixed); ksort($expected);
         if ($fixed !== $expected) { return false; }
-        foreach ($save['party'] as $p) {
-            if (!is_array($p) || !isset($p['name'], $p['position'], $p['inside'], $p['state'], $p['gauges'], $p['bag'], $p['held'],
+        $party = $save['party'];
+        foreach ($save['party'] as $index => $p) {
+            if (!is_array($p)) { return false; }
+            foreach (['exposure','illness'] as $field) {
+                $value = $p[$field] ?? ($save['version'] === self::VERSION ? null : 0);
+                if (!is_int($value) || $value < 0 || $value > 255) { return false; }
+                $party[$index][$field] = $value;
+            }
+            if (!isset($p['name'], $p['position'], $p['inside'], $p['state'], $p['gauges'], $p['bag'], $p['held'],
                 $p['max'], $p['ticks'], $p['used'], $p['awakeHours'], $p['foodHours'], $p['trained']) ||
                 !is_array($p['bag']) || count($p['bag']) !== 4 || !is_array($p['gauges']) || count($p['gauges']) !== 3 ||
                 !is_array($p['max']) || count($p['max']) !== 3 ||
@@ -1050,12 +1090,13 @@ final class World
                 if (!is_int($item) || $item < 0 || $item > 75) { return false; }
             }
         }
-        $this->rooms = $rooms; $this->party = $save['party']; $this->containers = $save['containers']; $this->map = $map;
+        $this->rooms = $rooms; $this->party = $party; $this->containers = $save['containers']; $this->map = $map;
         $this->videoCassette = $cassette;
         $this->frozenBodies = $frozen; $this->raidersArrived = $raiders;
         $this->zombieTarget = $target; $this->enemyTicks = (float)$ticks; $this->enemySeed = $seed;
         $this->alertTicks = (float)$alert; $this->rangedPending = $pending; $this->rangedArmed = $armed;
         $this->healingTicks = (float)$healing;
+        $this->healthTicks = (float)$health;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);

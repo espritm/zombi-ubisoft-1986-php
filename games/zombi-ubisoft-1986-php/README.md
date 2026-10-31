@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.12
+# Zombi — prototype CPC 0.13
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -47,6 +47,8 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
 - Sauvegarde locale versionnée et validation des données chargées.
 - Trousse de soins : U puis choix du survivant, +10 F/H avec plafonds ; délai
   partagé conservé dans les sauvegardes et trousse réutilisable après expiration.
+- Effets périodiques d'une maladie déjà présente et des corps voisins sur S,
+  compteur de blessures, report dans les menus et conservation dans les sauvegardes.
 - Combat des survivants zombifiés présents dans la même pièce et le même véhicule ;
   blessures sauvegardées et élimination définitive sans ajout au quota de corps.
 - Sélecteur de cibles avec une arme à feu sans ennemi ordinaire : flèches ou 1–4,
@@ -83,7 +85,8 @@ Les profils ennemis et les tirs différés sont détaillés dans [PROFILS-ET-RIP
 Les combats contre les membres zombifiés du groupe sont détaillés dans [SURVIVANTS-ZOMBIFIES.md](tools/extract/SURVIVANTS-ZOMBIFIES.md).
 La sélection et les effets sur les autres personnages sont décrits dans [SELECTION-DES-CIBLES.md](tools/extract/SELECTION-DES-CIBLES.md).
 Les soins, leur délai partagé et les limites concernant la maladie sont dans [SOINS.md](tools/extract/SOINS.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.12.
+Les effets différés vérifiés sont détaillés dans [MALADIE-ET-CADAVRES.md](tools/extract/MALADIE-ET-CADAVRES.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.13.
 
 ## Page et publication
 
