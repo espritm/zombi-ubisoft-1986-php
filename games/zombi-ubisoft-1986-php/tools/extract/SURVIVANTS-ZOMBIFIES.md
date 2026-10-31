@@ -61,3 +61,13 @@ naturel jusqu'à la zombification.
 - 61 tests PHP, analyse statique et démarrage de 600 images réussis.
 - Navigateur local : transformation, engagement, portrait, tir, sauvegarde des
   blessures, élimination définitive et rechargement, sans ajout de corps ordinaire.
+- Même scénario ciblé réussi sur JumPHP ; combats ordinaires et ripostes différées
+  également contrôlés dans le navigateur local sans régression détectée.
+- Lint et construction navigateur/site réussis. Pages locale et publiée contrôlées
+  sur ordinateur et téléphone, sans image cassée, débordement ou erreur JavaScript.
+  Les captures privées sont versionnées dans leurs URLs pour renouveler le cache.
+- Évasion complète sur JumPHP : 34 corps congelés, trois camions garés, arrivée
+  des pillards, sauvegarde/rechargement puis victoire des quatre survivants.
+  Ce parcours utilise une nouvelle partie et les commandes ordinaires, sans
+  injection de positions, objets, jauges ou ennemis ; une période de circulation
+  ennemie est franchie. La zombification reste vérifiée séparément par fixtures.
