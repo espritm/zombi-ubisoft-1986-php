@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.9.0';
+    public const VERSION = '0.10.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -626,12 +626,12 @@ final class World
             if (in_array(19, $cells, true) && $this->fuelCan > 0) { $this->fuelCan--; $this->fuelTank++; $this->message = 'RESERVOIR REMPLI'; return; }
             $this->message = 'BIDON VIDE OU RESERVOIR FERME'; return;
         }
-        if (in_array($item, [34, 35, 36], true) && $this->current()['prefix'][6] > 0) {
+        if (in_array($item, [34, 35, 36], true) && $this->opponent() !== null) {
             $this->resetCombat();
             $this->mode = 'aim'; $this->aim = 0; $this->aimAge = 0; $this->shotDelay = 0;
             $this->message = 'ENTREE POUR TIRER'; return;
         }
-        if (in_array($item, [37, 38, 39], true) && $this->current()['prefix'][6] > 0) {
+        if (in_array($item, [37, 38, 39], true) && $this->opponent() !== null) {
             $this->resetCombat();
             $this->alertTicks = 0;
             $this->mode = 'combat'; $this->message = 'ALTERNER GAUCHE ET DROITE'; return;
@@ -659,7 +659,7 @@ final class World
 
     public function strike(int $side): void
     {
-        if ($this->current()['prefix'][6] <= 0 || $this->person()['state'] !== 0) { return; }
+        if ($this->opponent() === null || $this->person()['state'] !== 0) { return; }
         if ($this->mode !== 'combat') { $this->resetCombat(); $this->alertTicks = 0; $this->mode = 'combat'; $this->message = 'COMBAT : ALTERNEZ G/D'; }
         if ($side !== $this->lastSide) { $this->presses++; $this->lastSide = $side; }
     }
@@ -679,8 +679,29 @@ final class World
 
     public function aimCell(): int { return 2 + (int)floor(fmod($this->aim,1.0) * 56); }
 
+    /** #81EF scans party order only after ordinary enemies, matching room and vehicle. */
+    public function opponent(): ?array
+    {
+        $r = $this->current();
+        if ($r['prefix'][6] > 0) { return ['person' => null, 'hp' => $r['hp'], 'strength' => $r['strength']]; }
+        foreach ($this->party as $i => $p) {
+            if ($i !== $this->active && $p['state'] === 128 && $this->roomIdFor($p) === $this->roomId() && $p['inside'] === $this->person()['inside']) {
+                return ['person' => $i, 'hp' => $p['gauges'][0], 'strength' => $p['gauges'][1]];
+            }
+        }
+        return null;
+    }
+
     private function hurtEnemy(int $damage): void
     {
+        $opponent = $this->opponent();
+        if ($opponent === null) { return; }
+        if ($opponent['person'] !== null) {
+            if ($damage >= $opponent['hp'] || $damage >= $opponent['strength']) { $this->enemyDefeated(); return; }
+            $this->party[$opponent['person']]['gauges'][0] -= $damage;
+            $this->party[$opponent['person']]['gauges'][1] -= $damage;
+            return;
+        }
         $r = &$this->rooms[$this->roomId()];
         if ($damage >= $r['hp'] || $damage >= $r['strength']) { unset($r); $this->enemyDefeated(); return; }
         $r['hp'] -= $damage; $r['strength'] -= $damage;
@@ -699,7 +720,7 @@ final class World
         $this->battleTime += $dt;
         if ($this->battleTime < 4.0) { return; }
         $this->battleTime = fmod($this->battleTime,4.0);
-        if ($this->randomScore() < $this->current()['hp']) { $hit = ($this->randomBits(3) + 6) >> 1; $this->combatDamage($hit); }
+        if ($this->randomScore() < ($this->opponent()['hp'] ?? 0)) { $hit = ($this->randomBits(3) + 6) >> 1; $this->combatDamage($hit); }
         if ($this->person()['state'] !== 0) { $this->peak = 0; return; }
         if ($this->peak > 0) {
             $bonus = [34=>6,35=>6,36=>8,37=>6,38=>10,39=>8][$this->person()['used']] ?? 0;
@@ -711,7 +732,7 @@ final class World
 
     private function shoot(): void
     {
-        if ($this->shotDelay > 0 || $this->current()['prefix'][6] <= 0) { return; }
+        if ($this->shotDelay > 0 || $this->opponent() === null) { return; }
         $cell = $this->aimCell(); $folded = $cell < 29 ? $cell : 57 - $cell;
         $width = $this->aimWidth(); $edge = 28 - (int)ceil($width / 2);
         // Preserve #8A58, including its counter-intuitive outside-window kill, verified with timed COPY inputs.
@@ -722,6 +743,14 @@ final class World
 
     private function enemyDefeated(): void
     {
+        $opponent = $this->opponent();
+        if ($opponent === null) { return; }
+        if ($opponent['person'] !== null) {
+            $p = &$this->party[$opponent['person']];
+            $p['gauges'][0] = 0; $p['state'] = 255; $p['used'] = 0;
+            $name = $p['name']; unset($p);
+            $this->resetCombat(); $this->mode = 'normal'; $this->message = $name . ' ELIMINE'; return;
+        }
         $r = &$this->rooms[$this->roomId()]; $r['prefix'][6] = max(0, $r['prefix'][6] - 1);
         $remaining = $r['prefix'][6];
         // Original #93E2 uses corpse 53 in the two leftmost bottom cells, not truck key 48.
@@ -786,7 +815,7 @@ final class World
         }
         if ($this->alertTicks >= 512 && $this->mode === 'normal') {
             $this->alertTicks = fmod($this->alertTicks,512);
-            if ($this->current()['prefix'][6] > 0) {
+            if ($this->opponent() !== null) {
                 $this->alertTicks = 0; $this->resetCombat(); $this->mode = 'combat'; $this->message = 'COMBAT : ALTERNEZ G/D'; return true;
             }
         }
@@ -835,7 +864,7 @@ final class World
     public function advance(float $dt): void
     {
         if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
-        $wasEnemy = $this->current()['prefix'][6] > 0; $wasAiming = $this->mode === 'aim';
+        $wasEnemy = $this->opponent() !== null; $wasAiming = $this->mode === 'aim';
         $this->minutes += $dt * 0.2;
         // Independent of displayed hours: the original tests the high timer byte against #3B.
         $this->enemyTicks += $dt * 50;
@@ -872,7 +901,7 @@ final class World
             }
             unset($p);
         }
-        if ($wasEnemy && !$wasAiming && !$autoCombat && $this->current()['prefix'][6] > 0 && $this->person()['state'] === 0 && $this->mode === 'combat') {
+        if ($wasEnemy && !$wasAiming && !$autoCombat && $this->opponent() !== null && $this->person()['state'] === 0 && $this->mode === 'combat') {
             $this->melee($dt);
         }
         if (count(array_filter($this->party, fn ($p) => $p['state'] < 32)) === 0) { $this->ending = 'defeat'; }
@@ -891,7 +920,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }

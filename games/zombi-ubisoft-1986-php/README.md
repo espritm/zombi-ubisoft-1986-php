@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.9
+# Zombi — prototype CPC 0.10
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -45,6 +45,8 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
 - Profils variables des zombies et pillards ; ripostes armées différées pendant les sélecteurs et les combats.
   L'horloge et le tir en attente sont sauvegardés ; les anciennes parties 0.8 restent chargeables.
 - Sauvegarde locale versionnée et validation des données chargées.
+- Combat des survivants zombifiés présents dans la même pièce et le même véhicule ;
+  blessures sauvegardées et élimination définitive sans ajout au quota de corps.
 - Ascenseur mobile sur cinq niveaux, appels depuis les paliers et transport de tous les passagers.
 - Trois passages avec corde : activer la corde avant de franchir l’ouverture. Sans corde active, le personnage chute.
 - Sauvegarde du plan mobile et chargement conservé pour les anciennes parties 0.2.
@@ -74,7 +76,8 @@ Le parcours d'évasion est décrit dans [EVASION.md](tools/extract/EVASION.md), 
 La circulation et les nouveaux arrivants sont détaillés dans [ENNEMIS-ET-HORLOGE.md](tools/extract/ENNEMIS-ET-HORLOGE.md).
 Les mesures de dégâts, les préconditions et les limites des combats sont dans [COMBAT-ET-TIRS.md](tools/extract/COMBAT-ET-TIRS.md).
 Les profils ennemis et les tirs différés sont détaillés dans [PROFILS-ET-RIPOSTES.md](tools/extract/PROFILS-ET-RIPOSTES.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.9.
+Les combats contre les membres zombifiés du groupe sont détaillés dans [SURVIVANTS-ZOMBIFIES.md](tools/extract/SURVIVANTS-ZOMBIFIES.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.10.
 
 ## Page et publication
 

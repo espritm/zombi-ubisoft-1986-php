@@ -48,4 +48,5 @@ checks of periodic movement, entrance arrivals and the variable freezer quota. `
 92 native melee/firearm checks and documents the counter-intuitive outside-window shot branch.
 `PROFILS-ET-RIPOSTES.md` adds 24 native checks of stat distributions and queued ranged attacks. Combat remains provisional;
 the prototype route does not establish full CPC parity.
+`SURVIVANTS-ZOMBIFIES.md` adds 17 native checks for party zombies, gauge damage and permanent death.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

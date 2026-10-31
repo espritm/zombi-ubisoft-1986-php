@@ -66,7 +66,12 @@ The global 16-bit alert counter queues a single reply each 256 ticks; busy modes
 A successful reply subtracts 6 sequentially from F then H. An idle normal encounter engages melee at 512 ticks.
 Aim timeout joins melee directly without dispatching a queued shot first. U can activate a held weapon from combat.
 Saves 0.9 retain alertTicks, rangedPending, rangedArmed and per-room shooter; older saves default these without deleting wounds.
-Exact firmware timing, frequent native stat rerolls and friendly targets remain provisional.
+Version 0.10 fights reanimated party members (state 128) in the same room and vehicle, after ordinary enemies.
+Their F/H gauges are combat hp/strength; fatal damage sets F=0 and state=255, preserving H and clearing used.
+Permanent death adds no ordinary enemy corpse or freezer quota. State 255 renders the cross, not a zombie portrait.
+See `tools/extract/SURVIVANTS-ZOMBIFIES.md` (17 native checks) and `tools/browser-zombie-party.cjs` (controlled fixtures).
+Saves retain party wounds/death; 0.2–0.9 still load. U selects the first present zombie in party order.
+Exact firmware timing, frequent native stat rerolls and manual/friendly target selection remain provisional.
 Other special exits and secondary item uses also remain incomplete.
 Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.

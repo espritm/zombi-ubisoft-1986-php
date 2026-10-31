@@ -78,7 +78,7 @@ final class PlayScene extends AbstractScene
         foreach (['left' => [-1, 0], 'right' => [1, 0], 'up' => [0, -1], 'down' => [0, 1]] as $key => [$dx, $dy]) {
             if (!$a->isPressed($key)) { continue; }
             if ($w->mode === 'object') { $w->moveCursor($dx, $dy); }
-            elseif ($w->mode === 'combat' || ($w->mode === 'normal' && $w->current()['prefix'][6] > 0 && $dx)) { $w->strike($dx); }
+            elseif ($w->mode === 'combat' || ($w->mode === 'normal' && $w->opponent() !== null && $dx)) { $w->strike($dx); }
             elseif ($w->mode === 'normal') { $w->chooseAction(($w->action - 1 + ($dx ?: $dy) + 18) % 18 + 1); }
             elseif (in_array($w->mode, ['direction', 'doorDirection', 'character', 'inventory', 'container', 'lift'], true)) { $w->changeChoice($dx ?: $dy); }
         }

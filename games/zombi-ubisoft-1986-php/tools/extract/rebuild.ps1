@@ -74,8 +74,14 @@ if (-not $ReuseCaptures) {
     foreach ($case in @('cadence','low','unarmed','empty','low-f','low-h','armed-edge','unarmed-edge','zombie')) {
         Step @('python3','-I','/workspace/analysis/probe-ranged-reply.py',$case)
     }
+    foreach ($case in @('low','idle','other','vehicle')) {
+        Step @('python3','-I','/workspace/analysis/probe-zombie-party-combat.py',$case)
+    }
+    foreach ($cell in @(28,1)) {
+        Step @('python3','-I','/workspace/analysis/probe-zombie-party-shot.py',"$cell")
+    }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

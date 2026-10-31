@@ -67,7 +67,7 @@ final class CpcView
         if (!$w->dark()) { $this->room($r, $w, $w->roomId()); }
         else { $r->fillRect(8, 48, 160, 80, [0, 0, 0]); }
         foreach ($w->party as $i => $p) {
-            $portrait = $p['state'] >= 128 ? $i + 4 : ($p['state'] >= 32 ? 8 : $i);
+            $portrait = $p['state'] === 128 ? $i + 4 : ($p['state'] >= 32 ? 8 : $i);
             $this->image($r, 'portraits', 12 + $i * 40, 4, [$portrait * 32, 0, 32, 32], 32, 32);
             if ($i === $w->active) { $r->drawRect(11 + $i * 40, 3, 34, 34, [255, 255, 255]); }
         }
@@ -89,7 +89,7 @@ final class CpcView
         $r->fillRect(100, 140, 120, 12, [0, 0, 0]);
         $shown = strlen($message) > 14 ? substr($message . $message, $offset, 14) : trim($message);
         $this->text($r, $shown, 104, 142);
-        $this->text($r, 'PROTOTYPE 0.9  F1:AIDE', 8, 154, 'blue');
+        $this->text($r, 'PROTOTYPE 0.10  F1:AIDE', 8, 154, 'blue');
         if ($w->mode === 'object' && in_array($w->pending, ['open','close'], true)) {
             $r->fillRect(0,154,320,10,[0,0,0]); $this->text($r,'F : PORTE PAR DIRECTION',8,154,'blue');
         }
@@ -98,8 +98,10 @@ final class CpcView
             $this->image($r, 'actions', 16 + $slot * 32, 168, [(($action + 3) % 18) * 32, 0, 32, 32], 32, 32);
         }
         $r->drawRect(143, 167, 34, 33, [0, 128, 255]);
-        if ($w->current()['prefix'][6] > 0) {
-            $this->image($r, 'enemies', 180, 4, [$w->raidersArrived ? 32 : 0, 0, 32, 32], 32, 32);
+        $opponent = $w->opponent();
+        if ($opponent !== null) {
+            if ($opponent['person'] === null) { $this->image($r, 'enemies', 180, 4, [$w->raidersArrived ? 32 : 0, 0, 32, 32], 32, 32); }
+            else { $this->image($r, 'portraits', 180, 4, [($opponent['person'] + 4) * 32, 0, 32, 32], 32, 32); }
             $r->fillRect(184, 70, 8, 50, [0, 0, 0]);
             $r->fillRect(184, 120 - $w->pressure * 1.7, 8, $w->pressure * 1.7, [255, 0, 0]);
         }
