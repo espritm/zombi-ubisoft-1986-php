@@ -61,3 +61,10 @@ au CPC. La priorité par type de lit est une règle observée, pas un tri par di
 - 81 contrôles CPC ; 92 tests PHP, analyse statique et démarrage de 600 images réussis.
 - Tests PHP des deux lits, du premier lien, des états, des compteurs conservés,
   du réveil à distance, du lit orphelin, du recoucher et de la migration.
+- Navigateur local et JumPHP : coucher réel après préparation des positions,
+  changement de survivant, réveil au clavier, compteurs et jauges conservés,
+  sauvegarde/rechargement, sélection à distance, première association et rejet borné.
+- Le scénario navigateur de faim/fatigue reste réussi localement.
+- Captures officielles et lint réussis ; page publiée contrôlée et inspectée
+  sur ordinateur/téléphone sans image cassée, débordement ni erreur JavaScript.
+- Construction navigateur/site et contrôle visuel de la page locale également réussis.
