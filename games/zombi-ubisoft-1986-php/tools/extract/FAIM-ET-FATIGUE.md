@@ -85,3 +85,13 @@ restent partiels. Le portage n'émule pas les blocages d'affichage de jauges nul
 - Navigateur local : faim et fatigue reportées puis sauvegardées/rechargées,
   indépendance de l'heure affichée, sommeil forcé et remise à zéro répétée,
   réveil, consommation et compteurs séparés.
+- Même scénario réussi sur JumPHP, incluant le réveil et le contrôle périodique
+  sur la même mise à jour. Les effets de maladie restent vérifiés localement.
+- Captures officielles et lint réussis ; page publiée contrôlée et inspectée
+  sur ordinateur/téléphone, sans image cassée, débordement ni erreur JavaScript.
+- Construction navigateur/site et inspection de la page locale également réussies.
+- Évasion complète sur JumPHP réussie depuis une nouvelle partie : 34 corps
+  congelés, trois camions garés, arrivée des pillards, sauvegarde/rechargement et
+  décollage des quatre survivants. Une période de circulation ennemie est franchie.
+  Le parcours n'injecte ni positions, ni objets, ni jauges, ni ennemis ; les
+  privations longues restent vérifiées séparément avec les fixtures décrites ici.
