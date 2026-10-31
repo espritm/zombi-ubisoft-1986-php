@@ -293,4 +293,46 @@ final class WorldTest extends TestCase
         self::assertSame(0,$w->current()['prefix'][6]); self::assertSame(1,$w->current()['prefix'][8]);
         self::assertSame([53,53],array_slice($w->current()['cells'],30,2)); self::assertNotContains(48,$w->current()['cells']);
     }
+
+    private function insertTape(World $w, int $item = 50, int $target = 65): void
+    {
+        $w->chooseAction(2);$w->activateAction();
+        foreach($w->inventoryChoices() as $i=>$entry){if($entry['item']===$item){$w->choice=$i;break;}}
+        $w->confirm();$cell=array_search($target,$w->current()['cells'],true);self::assertNotFalse($cell);
+        $w->row=intdiv($cell,10);$w->col=$cell%10;$w->confirm();
+    }
+
+    public function testVideoRequiresPlayerOnTapeAndTelevision(): void
+    {
+        $w=$this->world();$w->party[3]['position']=array_search(29,$w->map,true);$w->party[3]['bag']=[50,51,0,0];
+        $this->insertTape($w,50,60);self::assertSame(0,$w->videoCassette);self::assertContains(50,$w->person()['bag']);
+        $this->objectAction($w,4,60);$before=$w->minutes;$this->objectAction($w,4,65);
+        self::assertSame($before,$w->minutes);self::assertFalse($w->person()['trained']);
+        $this->insertTape($w,51);self::assertSame(0,$w->videoCassette);self::assertContains(51,$w->person()['bag']);
+        $this->insertTape($w);self::assertSame(50,$w->videoCassette);self::assertNotContains(50,$w->person()['bag']);
+        $this->objectAction($w,4,65);self::assertSame($before,$w->minutes);self::assertFalse($w->person()['trained']);
+        $this->objectAction($w,4,61);$this->objectAction($w,4,65);
+        self::assertSame($before+80,$w->minutes);self::assertTrue($w->person()['trained']);self::assertSame(50,$w->videoCassette);
+        self::assertContains(65,$w->current()['cells']);self::assertNotContains(70,$w->current()['cells']);
+    }
+
+    public function testVideoTrainsAllPresentSurvivorsOnly(): void
+    {
+        $w=$this->world();$position=array_search(29,$w->map,true);
+        $w->party[0]['position']=$position;$w->party[3]['position']=$position;$w->party[3]['bag']=[50,0,0,0];
+        $this->objectAction($w,4,60);$this->insertTape($w);$this->objectAction($w,4,61);$this->objectAction($w,4,65);
+        self::assertSame([true,false,false,true],array_column($w->party,'trained'));
+        self::assertSame('SHOOT BRAIN.',$w->message);
+    }
+
+    public function testVideoSaveMigratesVersion04AndRejectsCorruptTape(): void
+    {
+        $w=$this->world();$w->party[3]['position']=array_search(29,$w->map,true);$w->party[3]['bag']=[50,0,0,0];
+        $this->objectAction($w,4,60);$this->insertTape($w);$save=$w->export();$copy=$this->world();
+        self::assertTrue($copy->restore($save));self::assertSame($save,$copy->export());
+        $bad=$save;$bad['videoCassette']=51;self::assertFalse($copy->restore($bad));self::assertSame($save,$copy->export());
+        $legacy=$this->world()->export();$legacy['version']='0.4.0';unset($legacy['videoCassette']);
+        self::assertTrue($copy->restore($legacy));self::assertSame(0,$copy->videoCassette);
+        $bad=$save;unset($bad['videoCassette']);self::assertFalse($copy->restore($bad));self::assertSame(0,$copy->videoCassette);
+    }
 }

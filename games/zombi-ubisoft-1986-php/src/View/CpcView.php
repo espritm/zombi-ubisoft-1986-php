@@ -87,7 +87,7 @@ final class CpcView
         $r->fillRect(100, 140, 120, 12, [0, 0, 0]);
         $shown = strlen($message) > 14 ? substr($message . $message, $offset, 14) : trim($message);
         $this->text($r, $shown, 104, 142);
-        $this->text($r, 'PROTOTYPE 0.4  F1:AIDE', 8, 154, 'blue');
+        $this->text($r, 'PROTOTYPE 0.5  F1:AIDE', 8, 154, 'blue');
         for ($slot = 0; $slot < 9; $slot++) {
             $action = (($w->action - 1 + $slot - 4 + 36) % 18) + 1;
             $this->image($r, 'actions', 16 + $slot * 32, 168, [(($action + 3) % 18) * 32, 0, 32, 32], 32, 32);

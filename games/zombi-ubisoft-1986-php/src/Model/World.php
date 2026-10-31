@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.4.0';
+    public const VERSION = '0.5.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -34,6 +34,7 @@ final class World
     public bool $electricity = false;
     public int $fuelCan = 0;
     public int $fuelTank = 0;
+    public int $videoCassette = 0;
     public float $minutes = 615.0;
     public string $ending = '';
     public string $terminalInput = '';
@@ -410,7 +411,11 @@ final class World
             $this->replaceObject($item, $item + ($open ? 13 : -13));
             $this->message = $open ? 'OUVERT' : 'FERME';
         } elseif ($this->pending === 'put') {
-            if ($item >= 22 && $item <= 32) {
+            if ($item === 65) {
+                if ($this->selectedItem !== 50) { $this->message = 'IL FAUT UNE CASSETTE'; return; }
+                if ($this->videoCassette !== 0) { $this->message = 'CASSETTE DEJA INSEREE'; return; }
+                $this->videoCassette = 50;
+            } elseif ($item >= 22 && $item <= 32) {
                 if ($item === 22) {
                     if ($this->selectedItem !== 51) { $this->message = 'IL FAUT DES FUSIBLES'; return; }
                     if ($this->person()['used'] !== 45) {
@@ -502,7 +507,16 @@ final class World
             case 75:
                 $this->mode = 'terminal'; $this->choice = 0; $this->terminalInput = '';
                 $this->terminalLines = ['LOGIN', 'RDY:']; $this->message = 'TERMINAL CONNECTE'; return;
-            case 65: case 70: $this->message = 'VIDEO : PORTAGE EN COURS'; return;
+            case 65: case 70:
+                if ($this->videoCassette !== 50) { $this->message = 'INSERER UNE CASSETTE'; return; }
+                if (!in_array(66, $this->current()['cells'], true)) { $this->message = 'ALLUMER LE TELEVISEUR'; return; }
+                // Original #988F–#98EA: 80 minutes, then train everyone located in room 29.
+                $this->minutes += 80;
+                foreach ($this->party as &$viewer) {
+                    if (($this->map[$viewer['position']] ?? 0) === 29) { $viewer['trained'] = true; }
+                }
+                unset($viewer);
+                $this->replaceObject($item, 65); $this->message = 'SHOOT BRAIN.'; return;
             default: $this->message = 'AUCUN EFFET'; return;
         }
         $this->replaceObject($item, $new); $this->message = 'ACTION EFFECTUEE';
@@ -631,13 +645,16 @@ final class World
     {
         return ['version' => self::VERSION, 'map' => $this->map, 'rooms' => $this->rooms, 'party' => $this->party,
             'containers' => $this->containers, 'active' => $this->active, 'minutes' => $this->minutes,
-            'electricity' => $this->electricity, 'fuelCan' => $this->fuelCan, 'fuelTank' => $this->fuelTank];
+            'electricity' => $this->electricity, 'fuelCan' => $this->fuelCan, 'fuelTank' => $this->fuelTank,
+            'videoCassette' => $this->videoCassette];
     }
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
+        $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
+        if (!in_array($cassette, [0, 50], true)) { return false; }
         $map = ($save['version'] === '0.2.0') ? $this->initialMap : ($save['map'] ?? null);
         if (!is_array($map)) { return false; }
         $lift = array_keys($map, 63, true);
@@ -681,6 +698,7 @@ final class World
             }
         }
         $this->rooms = $save['rooms']; $this->party = $save['party']; $this->containers = $save['containers']; $this->map = $map;
+        $this->videoCassette = $cassette;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);

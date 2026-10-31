@@ -41,5 +41,6 @@ backgrounds. These captures establish rendering, not natural access to each room
 `REGLES-VERIFIEES.md` and `QUETES-ET-FINS.md` explain the controlled preconditions for rules and endings.
 `ASCENSEUR-ET-CORDE.md` documents the eight additional lift/rope checks and controlled starting conditions.
 `CAMIONS-ET-TERMINAL.md` documents three truck routes, six exact background variants and the computer commands.
-The PHP prototype deliberately labels unimplemented video playback; its combat balancing is approximate.
+`VIDEO-ET-PARCOURS.md` documents seven video checks and a fresh-game browser route without game-state injection.
+The full escape route and exact combat balancing remain unverified.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

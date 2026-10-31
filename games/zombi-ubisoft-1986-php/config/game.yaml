@@ -2,7 +2,7 @@
 game:
   id: zombi-ubisoft-1986-php                  # lower case, unique: folder of the games portal, network room filter
   title: "Zombi Ubisoft (1986) PHP"
-  version: 0.4.0
+  version: 0.5.0
   description: "Quand il n'y a plus de place en enfer, les morts reviennent sur terre..."
   width: 320                    # virtual resolution (pixels of the game, scaled to the window)
   height: 200
