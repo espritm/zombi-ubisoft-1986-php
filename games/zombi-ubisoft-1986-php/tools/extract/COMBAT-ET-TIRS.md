@@ -77,3 +77,14 @@ Les statistiques de départ de chaque rencontre sont encore une paire de référ
 31/27, alors que le CPC les tire au sort. La gestion de toutes les ripostes à distance,
 des cibles amies et des conséquences différées des blessures reste à compléter.
 Ces essais ne constituent pas une preuve de parité complète des combats.
+
+## Validation du 31 octobre 2026
+
+- 92 contrôles CPC et 47 tests PHP passent, avec analyse statique, syntaxe et démarrage de 600 images.
+- Les contrôles de combat passent dans Chromium local et sur JumPHP : rythme lent/rapide,
+  tirs partiels, branche extérieure, largeur fusil/entraînement et sauvegarde de l'ennemi blessé.
+- Une évasion locale au clavier réussit avec les quatre survivants et un quota porté à 36.
+  Le parcours de contrôle suivant équipe les survivants avant le nettoyage pour éviter les longs combats à mains nues.
+- Ce parcours armé réussit aussi sur JumPHP avec les quatre survivants, 34 corps entreposés,
+  un cycle de circulation des ennemis et sauvegarde/rechargement après l'arrivée du camion.
+- Les pages locale et publiée passent les contrôles ordinateur/téléphone.
