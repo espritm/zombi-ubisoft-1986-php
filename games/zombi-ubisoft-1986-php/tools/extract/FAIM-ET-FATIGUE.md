@@ -1,5 +1,8 @@
 # Faim, fatigue et récupération — version 0.14
 
+Le réveil manuel ajouté en 0.15 est décrit dans [REVEIL-MANUEL.md](REVEIL-MANUEL.md).
+Les limites ci-dessous concernent la version 0.14.
+
 ## Mesures sur le CPC
 
 `probe-deprivation.py` prépare les compteurs +29 et +30 d'Alexandre, sa jauge S

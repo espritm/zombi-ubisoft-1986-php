@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.14
+# Zombi — prototype CPC 0.15
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -51,6 +51,8 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
   compteur de blessures, report dans les menus et conservation dans les sauvegardes.
 - Seuils périodiques de faim et fatigue, sommeil forcé, réveil et récupération ;
   compteurs sauvegardés et indépendants des sauts de l'heure affichée.
+- Réveil manuel par lit occupé, sans bonus de récupération ni remise à zéro de
+  fatigue ; association de lit effacée et premier personnage correspondant choisi.
 - Combat des survivants zombifiés présents dans la même pièce et le même véhicule ;
   blessures sauvegardées et élimination définitive sans ajout au quota de corps.
 - Sélecteur de cibles avec une arme à feu sans ennemi ordinaire : flèches ou 1–4,
@@ -89,7 +91,8 @@ La sélection et les effets sur les autres personnages sont décrits dans [SELEC
 Les soins, leur délai partagé et les limites concernant la maladie sont dans [SOINS.md](tools/extract/SOINS.md).
 Les effets différés vérifiés sont détaillés dans [MALADIE-ET-CADAVRES.md](tools/extract/MALADIE-ET-CADAVRES.md).
 Les seuils de privation et la récupération sont détaillés dans [FAIM-ET-FATIGUE.md](tools/extract/FAIM-ET-FATIGUE.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.14.
+Les différences du réveil manuel sont détaillées dans [REVEIL-MANUEL.md](tools/extract/REVEIL-MANUEL.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.15.
 
 ## Page et publication
 

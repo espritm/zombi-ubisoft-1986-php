@@ -103,5 +103,11 @@ Wake/reanimation precede periodicHealth; wake clears awakeHours and adds up to 8
 Current saves require both counters <=255; 0.2–0.13 legacy values retain their low byte. No display-time catch-up.
 See `tools/extract/FAIM-ET-FATIGUE.md` (126 native checks), DeprivationTest and `tools/browser-deprivation.cjs` (controlled counters/timers).
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
+Version 0.15 follows native manual wake #A16C: choose occupied bed 57/59, clear state and bed association on the first matching party record.
+No state/room filter; do not wake every matching character. Keep ticks, S, foodHours and awakeHours unchanged.
+Only the clicked room's bed is freed. A bounded four-record search rejects orphan beds instead of reproducing the native unbounded scan.
+Current saves accept optional bed 57/59; legacy 0.2–0.14 remove stale associations from already-awake characters and empty bed=0.
+Existing sleeping associations remain; old discarded sleep ticks cannot be reconstructed.
+See `tools/extract/REVEIL-MANUEL.md` (81 native checks), ManualWakeTest and `tools/browser-manual-wake.cjs` (controlled starting positions, real sleep/wake controls).
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

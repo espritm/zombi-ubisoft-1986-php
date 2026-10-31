@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.14.0';
+    public const VERSION = '0.15.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -536,13 +536,17 @@ final class World
             $this->replaceObject($item, $item + 1); $this->party[$this->active]['bed'] = $item + 1;
             $this->message = 'REPOS. CHOISIR UN SURVIVANT';
         } elseif ($this->pending === 'wake') {
-            if (!in_array($item, [57, 59], true)) { $this->message = 'PERSONNE NE DORT ICI'; return; }
+            if (!in_array($item, [57, 59], true)) { $this->mode = 'normal'; $this->message = 'PERSONNE NE DORT ICI'; return; }
+            $name = null;
             foreach ($this->party as &$person) {
-                if ($person['state'] === 16 && ($person['bed'] ?? 0) === $item && $this->roomIdFor($person) === $this->roomId()) {
-                    $person['state'] = 0; $person['ticks'] = 0.0;
+                // #A189 scans party order by bed ID, without checking state or room.
+                if (($person['bed'] ?? 0) === $item) {
+                    $person['state'] = 0; unset($person['bed']); $name = $person['name']; break;
                 }
             }
-            unset($person); $this->replaceObject($item, $item - 1); $this->message = 'REVEILLE';
+            unset($person);
+            if ($name === null) { $this->message = 'PERSONNE NE DORT ICI'; }
+            else { $this->replaceObject($item, $item - 1); $this->message = $name . ' REVEILLE'; }
         }
         if (!in_array($this->mode, ['lift', 'terminal'], true)) { $this->mode = 'normal'; }
     }
@@ -1019,7 +1023,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -1052,6 +1056,10 @@ final class World
         $party = $save['party'];
         foreach ($save['party'] as $index => $p) {
             if (!is_array($p)) { return false; }
+            if (array_key_exists('bed',$p)) {
+                if (!in_array($p['bed'],[0,57,59],true) || ($save['version'] === self::VERSION && $p['bed'] === 0)) { return false; }
+                if ($save['version'] !== self::VERSION && ($p['bed'] === 0 || ($p['state'] ?? null) === 0)) { unset($party[$index]['bed']); }
+            }
             foreach (['exposure','illness'] as $field) {
                 $value = $p[$field] ?? ($save['version'] === self::VERSION ? null : 0);
                 if (!is_int($value) || $value < 0 || $value > 255) { return false; }
