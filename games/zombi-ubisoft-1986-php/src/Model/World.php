@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.11.0';
+    public const VERSION = '0.12.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -59,6 +59,7 @@ final class World
     private ?int $battleThreshold = null;
     private int $lastSide = -1;
     private ?int $selectedTarget = null;
+    private float $healingTicks = 0.0;
     private int $lastHour = 10;
     private array $initialMap = [];
 
@@ -622,6 +623,13 @@ final class World
     {
         $p = &$this->party[$this->active]; $p['used'] = $p['held'];
         $item = $p['held']; $this->mode = 'normal';
+        if ($item === 33) {
+            $this->resetCombat();
+            if ($this->healingTicks > 0) { $this->message = 'SOINS : PATIENTER'; return; }
+            // #93FC starts the shared cooldown before the target is selected or validated.
+            $this->healingTicks = 15000; $this->pending = 'heal';
+            $this->mode = 'target'; $this->choice = $this->active; $this->message = 'CHOISIR QUI SOIGNER'; return;
+        }
         if (in_array($item, [0, 41, 43, 45], true)) { $this->message = $item ? self::itemName($item) . ' ACTIVE' : 'OBJET DESACTIVE'; return; }
         if ($item === 42) {
             $cells = $this->current()['cells'];
@@ -632,6 +640,7 @@ final class World
         }
         if (in_array($item, [34, 35, 36], true)) {
             $this->resetCombat();
+            $this->pending = 'fire';
             if ($this->current()['prefix'][6] <= 0) {
                 $this->mode = 'target'; $this->choice = $this->active; $this->message = 'CHOISIR LA CIBLE'; return;
             }
@@ -721,6 +730,14 @@ final class World
     public function selectTarget(int $index): bool
     {
         if ($this->mode !== 'target' || !isset($this->party[$index])) { return false; }
+        if ($this->pending === 'heal') {
+            $this->mode = 'normal'; $this->pending = '';
+            if ($this->party[$index]['state'] !== 0 || $this->party[$index]['position'] !== $this->person()['position']) {
+                $this->message = 'SOINS IMPOSSIBLES'; return false;
+            }
+            for ($i=0;$i<2;$i++) { $this->party[$index]['gauges'][$i] = min($this->party[$index]['max'][$i],$this->party[$index]['gauges'][$i]+10); }
+            $this->message = $this->party[$index]['name'] . ' SOIGNE'; return true;
+        }
         if (!$this->targetInRoom($index) || $this->party[$index]['state'] === 255) {
             $this->mode = 'normal'; $this->message = 'CIBLE INDISPONIBLE'; return false;
         }
@@ -906,6 +923,7 @@ final class World
     public function advance(float $dt): void
     {
         if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
+        $this->healingTicks = max(0,$this->healingTicks - $dt * 50);
         $wasEnemy = $this->opponent() !== null; $wasAiming = $this->mode === 'aim';
         $this->minutes += $dt * 0.2;
         // Independent of displayed hours: the original tests the high timer byte against #3B.
@@ -957,12 +975,13 @@ final class World
             'videoCassette' => $this->videoCassette, 'frozenBodies' => $this->frozenBodies,
             'raidersArrived' => $this->raidersArrived, 'zombieTarget' => $this->zombieTarget,
             'enemyTicks' => $this->enemyTicks, 'enemySeed' => $this->enemySeed,
-            'alertTicks' => $this->alertTicks, 'rangedPending' => $this->rangedPending, 'rangedArmed' => $this->rangedArmed];
+            'alertTicks' => $this->alertTicks, 'rangedPending' => $this->rangedPending, 'rangedArmed' => $this->rangedArmed,
+            'healingTicks' => $this->healingTicks];
     }
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -974,6 +993,8 @@ final class World
         $alert = $save['alertTicks'] ?? ($save['version'] === self::VERSION ? null : 0.0);
         $pending = $save['rangedPending'] ?? ($save['version'] === self::VERSION ? null : false);
         $armed = $save['rangedArmed'] ?? ($save['version'] === self::VERSION ? null : false);
+        $healing = $save['healingTicks'] ?? ($save['version'] === self::VERSION ? null : 0.0);
+        if ((!is_int($healing) && !is_float($healing)) || !is_finite((float)$healing) || $healing < 0 || $healing > 15000) { return false; }
         if (!is_int($frozen) || $frozen < 0 || $frozen > 255 || !is_bool($raiders) ||
             !is_int($target) || $target < 0 || $target > 255 ||
             (!is_int($ticks) && !is_float($ticks)) || !is_finite((float)$ticks) || $ticks < 0 || $ticks >= 15104 ||
@@ -1034,6 +1055,7 @@ final class World
         $this->frozenBodies = $frozen; $this->raidersArrived = $raiders;
         $this->zombieTarget = $target; $this->enemyTicks = (float)$ticks; $this->enemySeed = $seed;
         $this->alertTicks = (float)$alert; $this->rangedPending = $pending; $this->rangedArmed = $armed;
+        $this->healingTicks = (float)$healing;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);

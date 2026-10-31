@@ -79,6 +79,11 @@ The chosen zombie stays targeted through aim timeout and NPC arrival; the target
 Save/cancel/action/person changes clear it, wounds remain. Saves 0.2–0.10 still load.
 See `tools/extract/SELECTION-DES-CIBLES.md` (30 native checks) and `tools/browser-target-selection.cjs`.
 Exact firmware timing, frequent native stat rerolls and elimination object cleanup remain provisional.
+Version 0.12 implements medkit 33: U opens the same selector with healing intent; state 0 and identical map position required.
+Vehicle state is ignored; heal F/H by 10 with separate caps, retain the kit. The shared 15000-tick cooldown starts before selection.
+Invalid targets and modern cancellation do not refund it; pause stops it and saves retain healingTicks. Old 0.2–0.11 saves default to zero.
+Native #8AF0 clobbers B, so #943F cannot decrement sickness; do not invent a cure. Periodic illness remains unported.
+See `tools/extract/SOINS.md` (52 native checks), HealingTest and `tools/browser-healing.cjs` (controlled equipment/gauges).
 Other special exits and secondary item uses also remain incomplete.
 Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.

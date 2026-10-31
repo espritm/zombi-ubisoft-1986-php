@@ -50,4 +50,5 @@ checks of periodic movement, entrance arrivals and the variable freezer quota. `
 the prototype route does not establish full CPC parity.
 `SURVIVANTS-ZOMBIFIES.md` adds 17 native checks for party zombies, gauge damage and permanent death.
 `SELECTION-DES-CIBLES.md` adds 30 native checks for manual firearm targeting and party-state outcomes.
+`SOINS.md` adds 52 native checks for medkit healing, shared cooldown, caps and rejected targets.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.
