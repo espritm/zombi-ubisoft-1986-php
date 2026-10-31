@@ -83,3 +83,16 @@ quand une jauge atteint zéro. Il ne s'agit pas d'une parité complète du cycle
   reprise, passage S=10→0 puis état 64 au contrôle suivant, corps et mort définitive,
   compteur de blessures après un coup de zombie et absence de maladie inventée.
 - Le test navigateur de la trousse de soins reste réussi.
+- Le même scénario d'effets différés passe sur JumPHP, avec reprise unique après
+  rechargement et vérification des deux formes de mort.
+- Lint, captures officielles et construction navigateur/site réussis. Les pages
+  locale et publiée passent les contrôles et l'inspection sur ordinateur/téléphone,
+  sans image cassée, débordement ni erreur JavaScript.
+- Évasion complète sur JumPHP réussie depuis une nouvelle partie : 34 corps
+  congelés, trois camions garés, arrivée des pillards, sauvegarde/rechargement et
+  victoire des quatre survivants, avec une période de circulation ennemie franchie.
+  Le parcours n'injecte pas de positions, objets, jauges ou ennemis.
+- Un premier lancement du parcours a expiré pendant le chargement initial du
+  moteur (180 secondes), avant toute action. Le nouvel essai a chargé le jeu puis
+  terminé l'évasion. Le script distingue désormais l'état du chargeur et les
+  erreurs d'exécution dans son diagnostic de démarrage.

@@ -8,7 +8,15 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  page.on('console',m=>{if(/CRASH|BOOT FAILED|Fatal error|Uncaught/.test(m.text()))errors.push(m.text());});
  const wait=ms=>new Promise(r=>setTimeout(r,ms));
  const key=async k=>{await page.keyboard.down(k);await wait(45);await page.keyboard.up(k);await wait(65);};
- const ready=async()=>{await page.waitForFunction(()=>document.getElementById('loader')?.style.display==='none',{timeout:180000});await page.mouse.click(480,100);};
+ const ready=async()=>{
+  try { await page.waitForFunction(()=>document.getElementById('loader')?.style.display==='none',{timeout:180000}); }
+  catch(e) {
+   console.error('Loader diagnostic:',await page.evaluate(()=>({status:document.getElementById('status')?.textContent,loader:document.getElementById('loader')?.className,readyState:document.readyState})));
+   console.error('Runtime errors:',errors);await page.screenshot({path:process.argv[3].replace('.png','-loader.png')});throw e;
+  }
+  await page.mouse.click(480,100);
+  console.log('Browser runtime ready');
+ };
  const state=()=>page.evaluate(()=>{
   window.JumPHP.php(`$s=$GLOBALS['app']->engine->scenes->current();$w=(new ReflectionProperty($s,'world'))->getValue($s);file_put_contents('/tmp/escape.json',json_encode(['save'=>$w->export(),'room'=>$w->roomId(),'action'=>$w->action,'choice'=>$w->choice,'row'=>$w->row,'col'=>$w->col,'mode'=>$w->mode,'aim'=>$w->aim,'ending'=>$w->ending,'message'=>$w->message,'inventory'=>$w->inventoryChoices()]));`);
   return JSON.parse(window.JumPHP.FS.readFile('/tmp/escape.json',{encoding:'utf8'}));
