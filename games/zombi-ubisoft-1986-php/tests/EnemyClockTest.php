@@ -26,10 +26,12 @@ final class EnemyClockTest extends TestCase
     public function testCadenceIsIndependentOfDisplayedHourAndCanResumeExactly(): void
     {
         $w=$this->isolated();$w->rooms[18]['prefix'][6]=1;$w->rooms[18]['prefix'][1]=20;
+        $w->rooms[19]['hp']=7;$w->rooms[19]['strength']=3;
         $w->advance(302.0);self::assertSame(1,$w->rooms[18]['prefix'][6]);self::assertSame(0,$w->rooms[19]['prefix'][6]);
         $copy=$this->world();self::assertTrue($copy->restore($w->export()));
         $w->advance(0.08);$copy->advance(0.08);
         self::assertSame(0,$w->rooms[18]['prefix'][6]);self::assertSame(1,$w->rooms[19]['prefix'][6]);
+        self::assertSame(31,$w->rooms[19]['hp']);self::assertSame(27,$w->rooms[19]['strength']);
         self::assertSame($w->export(),$copy->export());self::assertEqualsWithDelta(0,$w->export()['enemyTicks'],0.001);
     }
 

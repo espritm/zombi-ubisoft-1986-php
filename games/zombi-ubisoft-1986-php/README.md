@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.7
+# Zombi — prototype CPC 0.8
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -39,7 +39,9 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
 - Quatre survivants indépendants, passages ordinaires, portes, contenants, inventaire et objet actif, lumière,
   boissons/nourriture, repos, réanimation et défaite.
 - Électricité (fusibles et gants), transfert de carburant, entrée dans les véhicules, contact et condition de décollage.
-- Combat alterné et visée : première implémentation, équilibrage provisoire.
+- Combat alterné par cycles de quatre secondes, rythme des touches et bonus propres aux armes actives.
+- Tirs partiels, largeur dépendant de H, du fusil et de l'entraînement ; dégâts adverses conservés dans la sauvegarde.
+  Les particularités observées du tir CPC sont conservées, y compris sa branche contre-intuitive hors du centre.
 - Sauvegarde locale versionnée et validation des données chargées.
 - Ascenseur mobile sur cinq niveaux, appels depuis les paliers et transport de tous les passagers.
 - Trois passages avec corde : activer la corde avant de franchir l’ouverture. Sans corde active, le personnage chute.
@@ -68,7 +70,8 @@ sans injection d’objet, position, santé ou ennemi.
 Voir [VIDEO-ET-PARCOURS.md](tools/extract/VIDEO-ET-PARCOURS.md) et `tools/browser-route.cjs`.
 Le parcours d'évasion est décrit dans [EVASION.md](tools/extract/EVASION.md), avec ses préconditions de vérification CPC et ses limites.
 La circulation et les nouveaux arrivants sont détaillés dans [ENNEMIS-ET-HORLOGE.md](tools/extract/ENNEMIS-ET-HORLOGE.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.7.
+Les mesures de dégâts, les préconditions et les limites des combats sont dans [COMBAT-ET-TIRS.md](tools/extract/COMBAT-ET-TIRS.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.8.
 
 ## Page et publication
 

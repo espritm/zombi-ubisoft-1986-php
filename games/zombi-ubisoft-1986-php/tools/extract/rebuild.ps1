@@ -56,8 +56,18 @@ if (-not $ReuseCaptures) {
             Step @('python3','-I','/workspace/analysis/export-world.py')
         }
     }
+    foreach ($weapon in @(0,34,35,36,37,38,39)) {
+        Step @('python3','-I','/workspace/analysis/probe-melee-damage.py',"$weapon")
+    }
+    foreach ($shot in @(@(34,0,1),@(34,0,26),@(34,0,27),@(34,0,28),@(34,0,29),@(34,1,28),
+        @(36,0,28),@(36,1,28),@(35,0,28),@(35,1,28),@(36,0,26),@(34,1,26))) {
+        Step @('python3','-I','/workspace/analysis/probe-aim-damage.py',"$($shot[0])","$($shot[1])","$($shot[2])")
+    }
+    foreach ($delay in @(0,1,2,3,12,24,36,48,60,72,84)) {
+        Step @('python3','-I','/workspace/analysis/probe-natural-shots.py',"$delay")
+    }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

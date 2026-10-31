@@ -55,10 +55,11 @@ final class QuestRouteTest extends TestCase
 
     private function fight(World $w): void
     {
-        for($i=0;$i<500 && $w->current()['prefix'][6]>0;$i++){
+        for($i=0;$i<5000 && $w->current()['prefix'][6]>0;$i++){
             self::assertSame(0,$w->person()['state']);
             if(in_array($w->person()['held'],[34,35,36],true)){
-                $w->chooseAction(3);$w->activateAction();$w->advance(0.4);$w->confirm();
+                if($w->mode!=='aim'){$w->chooseAction(3);$w->activateAction();}
+                $w->advance(0.4);$w->confirm();
             }else{$w->strike($i%2 ? -1 : 1);$w->advance(0.06);}
         }
         self::assertSame(0,$w->current()['prefix'][6]);
@@ -90,8 +91,11 @@ final class QuestRouteTest extends TestCase
         $w=new World(json_decode(file_get_contents(__DIR__.'/../assets/original/game.json'),true,512,JSON_THROW_ON_ERROR));
         // Ordinary waiting on the roof allows one native-length enemy period and new entrants.
         $w->advance(302.08);self::assertGreaterThanOrEqual(34,$w->export()['zombieTarget']);
-        self::assertTrue($w->selectPerson(2));$this->travel($w,38,true);$this->object($w,8,13);$this->object($w,1,26);
-        $w->choice=0;$w->confirm();$this->inventory($w,18,43);$w->chooseAction(3);$w->activateAction();$this->travel($w,17,true);
+        // Retrieve a firearm before clearing the route; walking past enemies uses ordinary movement.
+        $this->travel($w,41);$this->object($w,1,36);$this->inventory($w,18,36);$this->fight($w);$this->travel($w,62,true);
+        self::assertTrue($w->selectPerson(2));$this->travel($w,41,true);$this->object($w,1,34);$this->inventory($w,18,34);
+        $this->travel($w,38,true);$this->object($w,8,13);$this->object($w,1,26);$w->choice=0;$w->confirm();
+        $this->travel($w,17,true);$this->inventory($w,18,43);$w->chooseAction(3);$w->activateAction();
         self::assertTrue($w->selectPerson(1));
         $this->travel($w,41,true);$this->object($w,1,35);$this->inventory($w,18,35);
         $this->travel($w,47,true);$this->object($w,1,49);
@@ -115,7 +119,7 @@ final class QuestRouteTest extends TestCase
             $w->chooseAction(16);$w->activateAction();$this->inventory($w,18,48);$this->object($w,4,63);$this->object($w,4,71);
             $w->chooseAction(17);$w->activateAction();
         }
-        self::assertTrue($w->selectPerson(3));$this->travel($w,41,true);$this->object($w,1,34);$this->inventory($w,18,34);
+        self::assertTrue($w->selectPerson(3));$this->inventory($w,18,36);
         $picked=0;
         for($pass=0;$pass<8&&!$w->raidersArrived;$pass++){
         for($id=1;$id<=63;$id++){
@@ -135,7 +139,7 @@ final class QuestRouteTest extends TestCase
         $this->object($w,8,6);$this->floor($w,52);$w->chooseAction(3);$w->activateAction();self::assertSame(1,$w->fuelTank);
         $this->object($w,8,4);$w->chooseAction(16);$w->activateAction();
         self::assertTrue($w->selectPerson(3));$this->travel($w,62,true);$w->chooseAction(16);$w->activateAction();
-        foreach([2,0] as $person){self::assertTrue($w->selectPerson($person));$this->travel($w,62,true);$w->chooseAction(16);$w->activateAction();}
+        foreach([2,0] as $person){self::assertTrue($w->selectPerson($person));if($person===2){$this->inventory($w,18,34);}$this->travel($w,62,true);$w->chooseAction(16);$w->activateAction();}
         self::assertSame([90,90,90,90],array_column($w->party,'inside'));self::assertSame([0,0,0,0],array_column($w->party,'state'));
         $this->object($w,4,64);$this->object($w,4,72);self::assertSame('victory',$w->ending);
     }

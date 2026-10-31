@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.7.0';
+    public const VERSION = '0.8.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -47,10 +47,14 @@ final class World
     public array $terminalLines = [];
     public float $pressure = 0.0;
     public float $aim = 0.0;
+    public float $shotDelay = 0.0;
+    private float $aimAge = 0.0;
     private float $battleTime = 0.0;
-    private float $lastStrike = -100.0;
-    private int $lastSide = 0;
-    private float $elapsed = 0.0;
+    private float $pressureTime = 0.0;
+    private int $presses = 0;
+    private int $peak = 0;
+    private ?int $battleThreshold = null;
+    private int $lastSide = -1;
     private int $lastHour = 10;
     private array $initialMap = [];
 
@@ -61,7 +65,7 @@ final class World
             foreach ($r['objects_grid'] as $line) {
                 foreach ($line as $cell) { $cells[] = $cell; }
             }
-            $this->rooms[$r['id']] = ['prefix' => $r['record_prefix'], 'cells' => $cells, 'hp' => 31];
+            $this->rooms[$r['id']] = ['prefix' => $r['record_prefix'], 'cells' => $cells, 'hp' => 31, 'strength' => 27];
             if (isset($r['map_index'])) { $this->map[$r['map_index']] = $r['id']; }
         }
         foreach ($data['characters'] as $c) {
@@ -109,8 +113,7 @@ final class World
         }
         $this->active = $index;
         $this->mode = 'normal';
-        $this->battleTime = 0;
-        $this->pressure = 0;
+        $this->resetCombat();
         $this->message = $this->person()['name'];
         return true;
     }
@@ -234,7 +237,7 @@ final class World
         }
         $this->party[$this->active]['position'] = $target;
         $this->message = self::DIRECTIONS[$direction];
-        $this->pressure = 0; $this->battleTime = 0;
+        $this->resetCombat();
         return true;
     }
 
@@ -297,10 +300,13 @@ final class World
         $this->rooms[77]['prefix'][6] = 1; $this->rooms[77]['prefix'][9] = 77;
         if ($this->rooms[21]['prefix'][1] === 20) { $this->rooms[21]['prefix'][6] = 1; }
         $this->rooms[22]['prefix'][6] = 1; $this->rooms[23]['prefix'][6] = 1;
+        foreach ([19,21,22,23,65,77,78] as $id) {
+            if ($this->rooms[$id]['prefix'][6] > 0) { $this->rooms[$id]['hp'] = 31; $this->rooms[$id]['strength'] = 27; }
+        }
         $position = array_search(77, $this->map, true);
         foreach ($this->party as &$person) { if ($person['inside'] === 87 && $position !== false) { $person['position'] = $position; } }
         unset($person);
-        $this->pressure = 0; $this->battleTime = 0; $this->message = 'UN AUTRE CAMION EST ARRIVE';
+        $this->resetCombat(); $this->message = 'UN AUTRE CAMION EST ARRIVE';
     }
 
     /** #9A2B/#9B11: the cabin is room 63, moved between five map cells. */
@@ -321,7 +327,7 @@ final class World
         if ($newLanding !== null && ($called || $this->rooms[$newLanding]['prefix'][2] < 15)) {
             $this->rooms[$newLanding]['prefix'][2] = 0;
         }
-        $this->pressure = 0; $this->battleTime = 0;
+        $this->resetCombat();
     }
 
     public function moveLift(int $floor): bool
@@ -353,7 +359,7 @@ final class World
         $this->rooms[$source]['cells'][$free] = 41;
         $this->removeItem(41);
         $this->party[$this->active]['position'] = $target;
-        $this->pressure = 0; $this->battleTime = 0;
+        $this->resetCombat();
         $this->message = 'DESCENTE PAR LA CORDE'; return true;
     }
 
@@ -383,7 +389,7 @@ final class World
             if ($survivor['inside'] === $interior) { $survivor['position'] = $position; }
         }
         unset($survivor);
-        $this->mode = 'normal'; $this->pressure = 0; $this->battleTime = 0;
+        $this->mode = 'normal'; $this->resetCombat();
         $this->message = 'ACCES BLOQUE. MOTEUR ARRETE'; $this->checkArrival(); return true;
     }
 
@@ -619,9 +625,12 @@ final class World
             $this->message = 'BIDON VIDE OU RESERVOIR FERME'; return;
         }
         if (in_array($item, [34, 35, 36], true) && $this->current()['prefix'][6] > 0) {
-            $this->mode = 'aim'; $this->aim = 0; $this->message = 'VALIDER QUAND LA CIBLE EST AU CENTRE'; return;
+            $this->resetCombat();
+            $this->mode = 'aim'; $this->aim = 0; $this->aimAge = 0; $this->shotDelay = 0;
+            $this->message = 'ENTREE POUR TIRER'; return;
         }
         if (in_array($item, [37, 38, 39], true) && $this->current()['prefix'][6] > 0) {
+            $this->resetCombat();
             $this->mode = 'combat'; $this->message = 'ALTERNER GAUCHE ET DROITE'; return;
         }
         $this->message = 'USAGE SPECIAL EN COURS DE PORTAGE';
@@ -648,32 +657,74 @@ final class World
     public function strike(int $side): void
     {
         if ($this->current()['prefix'][6] <= 0 || $this->person()['state'] !== 0) { return; }
-        if ($side !== $this->lastSide && $this->elapsed - $this->lastStrike < 0.20) { $this->pressure = min(28, $this->pressure + 2); }
-        $this->lastSide = $side; $this->lastStrike = $this->elapsed;
-        if ($this->pressure >= 12) {
-            $this->rooms[$this->roomId()]['hp'] -= 2 + (int)floor($this->person()['gauges'][0] / 16);
-            if ($this->current()['hp'] <= 0) { $this->enemyDefeated(); }
+        if ($side !== $this->lastSide) { $this->presses++; $this->lastSide = $side; }
+    }
+
+    private function resetCombat(): void
+    {
+        $this->pressure = 0; $this->battleTime = 0; $this->pressureTime = 0;
+        $this->presses = 0; $this->peak = 0; $this->lastSide = -1; $this->battleThreshold = null;
+        $this->shotDelay = 0;
+    }
+
+    public function aimWidth(): int
+    {
+        $bonus = ($this->person()['held'] === 36 ? 20 : 0) + ($this->person()['trained'] ? 40 : 0);
+        return max(1,(int)ceil((($this->person()['gauges'][1] + $bonus) & 255) / 20));
+    }
+
+    public function aimCell(): int { return 2 + (int)floor(fmod($this->aim,1.0) * 56); }
+
+    private function hurtEnemy(int $damage): void
+    {
+        $r = &$this->rooms[$this->roomId()];
+        if ($damage >= $r['hp'] || $damage >= $r['strength']) { unset($r); $this->enemyDefeated(); return; }
+        $r['hp'] -= $damage; $r['strength'] -= $damage;
+    }
+
+    private function melee(float $dt): void
+    {
+        $this->battleThreshold ??= (27 - ((($this->person()['gauges'][0] + $this->person()['gauges'][1]) & 255) >> 3)) & 255;
+        $this->pressureTime += $dt;
+        while ($this->pressureTime >= 0.2) {
+            $this->pressureTime -= 0.2;
+            $this->pressure = max(0,min(28,$this->pressure + ($this->presses >= 3 ? 1 : ($this->presses <= 1 ? -1 : 0))));
+            $this->presses = 0;
+            if ($this->pressure >= $this->battleThreshold || $this->peak > 0) { $this->peak = max($this->peak,(int)$this->pressure); }
         }
+        $this->battleTime += $dt;
+        if ($this->battleTime < 4.0) { return; }
+        $this->battleTime = fmod($this->battleTime,4.0);
+        $random = $this->randomBits(6); $score = $random + ($random & 31) + ($random & 7);
+        if ($score < $this->current()['hp']) { $hit = ($this->randomBits(3) + 6) >> 1; $this->damage($hit,$hit); }
+        if ($this->person()['state'] !== 0) { $this->peak = 0; return; }
+        if ($this->peak > 0) {
+            $bonus = [34=>6,35=>6,36=>8,37=>6,38=>10,39=>8][$this->person()['used']] ?? 0;
+            $damage = ((($this->peak - $this->battleThreshold) >> 1) + ($this->person()['gauges'][0] >> 4) + $bonus) >> 1;
+            $this->hurtEnemy(max(0,$damage));
+        }
+        $this->peak = 0;
     }
 
     private function shoot(): void
     {
-        $phase = fmod($this->aim, 2.0); $cursor = $phase <= 1 ? $phase : 2 - $phase;
-        $tolerance = 0.08 + $this->person()['gauges'][1] / 1000 + ($this->person()['trained'] ? 0.08 : 0);
-        $this->mode = 'normal';
-        if (abs($cursor - 0.5) < $tolerance) {
-            $this->rooms[$this->roomId()]['hp'] = 0; $this->enemyDefeated();
-        } else { $this->message = 'TIR MANQUE'; }
+        if ($this->shotDelay > 0 || $this->current()['prefix'][6] <= 0) { return; }
+        $cell = $this->aimCell(); $folded = $cell < 29 ? $cell : 57 - $cell;
+        $width = $this->aimWidth(); $edge = 28 - (int)ceil($width / 2);
+        // Preserve #8A58, including its counter-intuitive outside-window kill, verified with timed COPY inputs.
+        if ($folded <= $edge) { $this->enemyDefeated(); return; }
+        $this->hurtEnemy(12);
+        if ($this->mode === 'aim') { $this->shotDelay = 1.92; $this->message = 'ADVERSAIRE TOUCHE'; }
     }
 
     private function enemyDefeated(): void
     {
         $r = &$this->rooms[$this->roomId()]; $r['prefix'][6] = max(0, $r['prefix'][6] - 1);
-        $r['hp'] = 31;
+        $r['hp'] = 31; $r['strength'] = 27;
         // Original #93E2 uses corpse 53 in the two leftmost bottom cells, not truck key 48.
         $r['prefix'][8] = min(255, $r['prefix'][8] + 1);
         $r['cells'][30] = 53; $r['cells'][31] = 53;
-        $this->pressure = 0; $this->mode = 'normal'; $this->message = 'ZOMBI ABATTU';
+        $this->resetCombat(); $this->mode = 'normal'; $this->message = $this->raidersArrived ? 'ENNEMI ABATTU' : 'ZOMBI ABATTU';
     }
 
     private function damage(int $f, int $h): void
@@ -681,6 +732,7 @@ final class World
         $p = &$this->party[$this->active];
         $p['gauges'][0] = max(0, $p['gauges'][0] - $f); $p['gauges'][1] = max(0, $p['gauges'][1] - $h);
         if ($p['gauges'][0] === 0 || $p['gauges'][1] === 0) {
+            $p['gauges'][0] = 0;
             $p['state'] = 64; $p['ticks'] = 0.0; $p['used'] = 0;
             $this->mode = 'character'; $this->choice = $this->active; $this->message = 'CHOISIR UN SURVIVANT';
         }
@@ -691,8 +743,13 @@ final class World
     /** A saved 16-bit generator keeps intermediate arithmetic within WASM's signed 32-bit range. */
     private function enemyDirection(): int
     {
+        return $this->randomBits(3);
+    }
+
+    private function randomBits(int $bits): int
+    {
         $this->enemySeed = ($this->enemySeed * 25173 + 13849) & 65535;
-        return $this->enemySeed >> 13;
+        return $this->enemySeed >> (16 - $bits);
     }
 
     /** #7DE4–#7E9A: in-place room scan, ten direction attempts, then entrance arrivals. */
@@ -708,14 +765,14 @@ final class World
                     if (!in_array($this->rooms[$id]['prefix'][$direction], [0,20], true)) { continue; }
                     $target = $this->map[$positions[$id] + $deltas[$direction]] ?? 0;
                     if ($target < 1 || $target >= 63 || $this->rooms[$target]['prefix'][6] >= 5) { continue; }
-                    if ($this->rooms[$target]['prefix'][6] === 0) { $this->rooms[$target]['hp'] = 31; }
+                    if ($this->rooms[$target]['prefix'][6] === 0) { $this->rooms[$target]['hp'] = 31; $this->rooms[$target]['strength'] = 27; }
                     $this->rooms[$target]['prefix'][6]++; $this->rooms[$id]['prefix'][6]--; break;
                 }
             }
         }
         foreach ([[19,0],[31,1],[32,3]] as [$id,$field]) {
             if ($this->rooms[$id]['prefix'][$field] === 10 || $this->rooms[$id]['prefix'][6] >= 5) { continue; }
-            if ($this->rooms[$id]['prefix'][6] === 0) { $this->rooms[$id]['hp'] = 31; }
+            if ($this->rooms[$id]['prefix'][6] === 0) { $this->rooms[$id]['hp'] = 31; $this->rooms[$id]['strength'] = 27; }
             $this->rooms[$id]['prefix'][6]++;
             // Preserve the completed quota after arrival; the native counter is then no longer an ending gate.
             if (!$this->raidersArrived) { $this->zombieTarget = ($this->zombieTarget + 1) & 255; }
@@ -725,12 +782,18 @@ final class World
     public function advance(float $dt): void
     {
         if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
-        $this->elapsed += $dt; $this->minutes += $dt * 0.2;
+        $wasEnemy = $this->current()['prefix'][6] > 0; $wasAiming = $this->mode === 'aim';
+        $this->minutes += $dt * 0.2;
         // Independent of displayed hours: the original tests the high timer byte against #3B.
         $this->enemyTicks += $dt * 50;
         while ($this->enemyTicks >= 15104) { $this->enemyTicks -= 15104; $this->updateEnemies(); }
         $this->checkArrival();
-        if ($this->mode === 'aim') { $this->aim += $dt * 1.2; }
+        if ($this->mode === 'aim') {
+            $this->aimAge += $dt;
+            if ($this->shotDelay > 0) { $this->shotDelay = max(0,$this->shotDelay - $dt); }
+            else { $this->aim += $dt * (137.5 / 56); }
+            if ($this->aimAge >= 10.24) { $this->resetCombat(); $this->mode = 'normal'; $this->message = 'FIN DE VISEE'; }
+        }
         foreach ($this->party as &$p) {
             if (in_array($p['state'], [16, 64], true)) { $p['ticks'] += $dt * 50; }
             if ($p['state'] === 16 && $p['ticks'] >= 119808) {
@@ -755,10 +818,8 @@ final class World
             }
             unset($p);
         }
-        if ($this->current()['prefix'][6] > 0 && $this->person()['state'] === 0) {
-            $this->battleTime += $dt;
-            if ($this->battleTime >= 4.0) { $this->battleTime = 0; $hit = mt_rand(3, 6); $this->damage($hit, $hit); }
-            if ($this->elapsed - $this->lastStrike > 0.2) { $this->pressure = max(0, $this->pressure - $dt * 4); }
+        if ($wasEnemy && !$wasAiming && $this->current()['prefix'][6] > 0 && $this->person()['state'] === 0 && $this->mode !== 'aim') {
+            $this->melee($dt);
         }
         if (count(array_filter($this->party, fn ($p) => $p['state'] < 32)) === 0) { $this->ending = 'defeat'; }
     }
@@ -775,7 +836,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -814,12 +875,16 @@ final class World
                 if (!is_int($gauge) || $gauge < 0 || $gauge > 255) { return false; }
             }
         }
+        $rooms = $save['rooms'];
         foreach ($this->rooms as $id => $r) {
             if (!isset($save['rooms'][$id]['prefix'], $save['rooms'][$id]['cells'], $save['rooms'][$id]['hp']) ||
                 !is_array($save['rooms'][$id]['prefix']) || !is_array($save['rooms'][$id]['cells']) ||
                 count($save['rooms'][$id]['prefix']) !== 10 || count($save['rooms'][$id]['cells']) !== 40) { return false; }
             if (!array_is_list($save['rooms'][$id]['prefix']) || !array_is_list($save['rooms'][$id]['cells']) ||
                 !is_int($save['rooms'][$id]['hp']) || $save['rooms'][$id]['hp'] < 0) { return false; }
+            $strength = $rooms[$id]['strength'] ?? ($save['version'] === self::VERSION ? null : 27);
+            if (!is_int($strength) || $strength < 0 || $strength > 255) { return false; }
+            $rooms[$id]['strength'] = $strength;
             foreach (array_merge($save['rooms'][$id]['prefix'], $save['rooms'][$id]['cells']) as $value) {
                 if (!is_int($value) || $value < 0 || $value > 255) { return false; }
             }
@@ -830,14 +895,14 @@ final class World
                 if (!is_int($item) || $item < 0 || $item > 75) { return false; }
             }
         }
-        $this->rooms = $save['rooms']; $this->party = $save['party']; $this->containers = $save['containers']; $this->map = $map;
+        $this->rooms = $rooms; $this->party = $save['party']; $this->containers = $save['containers']; $this->map = $map;
         $this->videoCassette = $cassette;
         $this->frozenBodies = $frozen; $this->raidersArrived = $raiders;
         $this->zombieTarget = $target; $this->enemyTicks = (float)$ticks; $this->enemySeed = $seed;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);
-        $this->pressure = 0; $this->battleTime = 0; $this->lastStrike = -100; $this->lastSide = 0;
+        $this->resetCombat();
         $this->terminalInput = ''; $this->terminalLines = [];
         $this->mode = 'normal'; $this->ending = ''; $this->message = 'PARTIE CHARGEE'; return true;
     }

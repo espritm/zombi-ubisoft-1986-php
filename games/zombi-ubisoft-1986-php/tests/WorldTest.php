@@ -289,7 +289,7 @@ final class WorldTest extends TestCase
     {
         $w = $this->world(); $w->party[3]['position'] = array_search(41,$w->map,true); $w->party[3]['held'] = 34;
         $w->chooseAction(3); $w->activateAction(); self::assertSame('aim',$w->mode);
-        $w->aim = 0.5; $w->confirm();
+        $w->aim = 0.0; $w->confirm();
         self::assertSame(0,$w->current()['prefix'][6]); self::assertSame(1,$w->current()['prefix'][8]);
         self::assertSame([53,53],array_slice($w->current()['cells'],30,2)); self::assertNotContains(48,$w->current()['cells']);
     }

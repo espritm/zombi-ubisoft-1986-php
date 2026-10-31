@@ -53,7 +53,14 @@ Saves retain enemyTicks and a portable 16-bit enemySeed; old 0.2–0.6 saves sta
 After raider arrival the completed quota is retained for progress, unlike the repurposed native counter.
 See `tools/extract/ENNEMIS-ET-HORLOGE.md` and `tools/browser-enemy-clock.cjs` for isolated timer/seed controls.
 The escape test now follows the variable quota and can revisit rooms after enemy movement.
-Other special exits, secondary item uses and exact combat/weapon behavior remain incomplete.
+Version 0.8 adds native melee batches (0.2 s), attack rounds (4 s), weapon bonuses and conditional 3–6 damage.
+Projectile width uses H, rifle +20, training +40. Central shots reduce hp/strength by 12, with 1.92 s delay.
+Preserve the original #8A58 outside-window kill: controlled and natural timed-COPY runs both confirm it.
+See `tools/extract/COMBAT-ET-TIRS.md` (92 native checks) and `tools/browser-combat.cjs` (controlled equipment/cursor fixtures).
+Saves 0.8 require per-room strength; 0.2–0.7 migrate with reference strength 27. Combat controls reset on load, damage persists.
+Fresh-game browser escape uses rapid alternating keyboard input for melee; its PHP bridge remains read-only.
+Enemy reference stats 31/27, exact firmware aiming timing, ranged retaliation and friendly targets remain provisional.
+Other special exits and secondary item uses also remain incomplete.
 Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
