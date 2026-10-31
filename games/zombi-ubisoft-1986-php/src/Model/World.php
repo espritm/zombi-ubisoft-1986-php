@@ -244,7 +244,7 @@ final class World
     {
         $this->mode = 'normal';
         if ($this->person()['held'] !== 49 || $this->person()['inside'] !== 0 || !in_array($direction, [0,2,3,5], true)) {
-            $this->message = 'OUTIL 49 NECESSAIRE'; return;
+            $this->message = 'OUTIL NECESSAIRE'; return;
         }
         $target = $this->map[$this->person()['position'] + self::DELTAS[$direction]] ?? null;
         $field = self::EXIT_FIELDS[$direction]; $open = $this->pending === 'open';

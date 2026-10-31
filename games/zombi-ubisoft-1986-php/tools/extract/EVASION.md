@@ -38,3 +38,13 @@ et vérifie aussi la sauvegarde après l'arrivée. Son pont PHP lit seulement l'
 Cela valide la chaîne d'évasion du prototype. Les déplacements périodiques des ennemis,
 leurs réapparitions, les munitions et l'équilibrage des combats ne reproduisent pas encore
 tous les comportements CPC. Commencer une nouvelle partie est conseillé pour tester la chaîne entière.
+
+## Validation du 31 octobre 2026
+
+- 33 tests PHP, 2 205 assertions ; analyse statique, syntaxe et démarrage de 600 images réussis.
+- Dix contrôles des portes/arrivées dans l'original, plus trois états d'éclairage partagé.
+- Régressions navigateur : déplacements, sauvegarde, ascenseur, corde, terminal et camions.
+- Évasion complète dans Chromium local et sur `play.jumphp.net`, avec les quatre survivants et sauvegarde/rechargement
+  après l'arrivée. Les touches doivent rester assez longtemps enfoncées pour être observées
+  par la boucle du jeu ; les pressions du script sont de 45 ms, avec 65 ms entre les touches.
+- Page d'accueil locale et publiée vérifiée sur ordinateur et téléphone.
