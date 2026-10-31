@@ -11,6 +11,7 @@ final class CombatTest extends TestCase
         $w=new World(json_decode(file_get_contents(__DIR__.'/../assets/original/game.json'),true,512,JSON_THROW_ON_ERROR));
         $save=$w->export();$save['enemySeed']=0;self::assertTrue($w->restore($save));
         $w->party[3]['position']=array_search(41,$w->map,true);$w->party[3]['held']=$weapon;$w->party[3]['used']=$weapon;
+        $w->rooms[41]['hp']=31;$w->rooms[41]['strength']=27;$w->rooms[41]['shooter']=false;$w->mode='combat';
         return $w;
     }
 
@@ -74,7 +75,7 @@ final class CombatTest extends TestCase
         $w=$this->world(34);self::assertSame(4,$w->aimWidth());$w->party[3]['trained']=true;self::assertSame(6,$w->aimWidth());
         $w->party[3]['held']=36;self::assertSame(7,$w->aimWidth());$w->party[3]['trained']=false;self::assertSame(5,$w->aimWidth());
         $w->party[3]['gauges'][1]=40;self::assertSame(3,$w->aimWidth());
-        $w->chooseAction(3);$w->activateAction();$w->advance(10.24);self::assertSame('normal',$w->mode);
+        $w->chooseAction(3);$w->activateAction();$w->advance(10.24);self::assertSame('combat',$w->mode);
     }
 
     public function testDamagedEnemySavesAndVersion07StrengthMigrates(): void

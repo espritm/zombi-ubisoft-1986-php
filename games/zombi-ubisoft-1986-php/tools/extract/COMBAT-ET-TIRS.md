@@ -1,5 +1,8 @@
 # Corps à corps et tirs — version 0.8
 
+La version 0.9 remplace la paire ennemie de référence et ajoute les ripostes ; voir
+[PROFILS-ET-RIPOSTES.md](PROFILS-ET-RIPOSTES.md).
+
 ## Préconditions et observations CPC
 
 `verify-combat-damage.py` vérifie 92 propriétés dans les captures de l'original.

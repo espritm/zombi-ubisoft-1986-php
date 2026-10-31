@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.8
+# Zombi — prototype CPC 0.9
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -22,7 +22,7 @@ Sur JumPHP, elles sont chargées séparément via les fichiers privés du projet
 
 Au titre : Entrée pour jouer, C pour continuer, G pour la galerie des 90 décors, F1 pour l’aide.
 En partie : flèches pour parcourir les actions/listes ou sélectionner une case, Entrée/Espace pour valider,
-Tab pour annuler, Échap pour la pause, M pour les directions, I pour équiper, C ou 1–4 pour les personnages.
+Tab pour annuler, Échap pour la pause, M pour les directions, I pour équiper, U pour utiliser l'objet tenu, C ou 1–4 pour les personnages.
 La souris permet de choisir les portraits, icônes, objets et listes. F5 sauvegarde, F9 recharge.
 Pour une porte sans case sélectionnable : choisir OUVRIR ou FERMER, puis F et la direction.
 Les sauvegardes restent sur le navigateur utilisé et ne sont pas compatibles avec le CPC.
@@ -42,6 +42,8 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
 - Combat alterné par cycles de quatre secondes, rythme des touches et bonus propres aux armes actives.
 - Tirs partiels, largeur dépendant de H, du fusil et de l'entraînement ; dégâts adverses conservés dans la sauvegarde.
   Les particularités observées du tir CPC sont conservées, y compris sa branche contre-intuitive hors du centre.
+- Profils variables des zombies et pillards ; ripostes armées différées pendant les sélecteurs et les combats.
+  L'horloge et le tir en attente sont sauvegardés ; les anciennes parties 0.8 restent chargeables.
 - Sauvegarde locale versionnée et validation des données chargées.
 - Ascenseur mobile sur cinq niveaux, appels depuis les paliers et transport de tous les passagers.
 - Trois passages avec corde : activer la corde avant de franchir l’ouverture. Sans corde active, le personnage chute.
@@ -71,7 +73,8 @@ Voir [VIDEO-ET-PARCOURS.md](tools/extract/VIDEO-ET-PARCOURS.md) et `tools/browse
 Le parcours d'évasion est décrit dans [EVASION.md](tools/extract/EVASION.md), avec ses préconditions de vérification CPC et ses limites.
 La circulation et les nouveaux arrivants sont détaillés dans [ENNEMIS-ET-HORLOGE.md](tools/extract/ENNEMIS-ET-HORLOGE.md).
 Les mesures de dégâts, les préconditions et les limites des combats sont dans [COMBAT-ET-TIRS.md](tools/extract/COMBAT-ET-TIRS.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.8.
+Les profils ennemis et les tirs différés sont détaillés dans [PROFILS-ET-RIPOSTES.md](tools/extract/PROFILS-ET-RIPOSTES.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.9.
 
 ## Page et publication
 

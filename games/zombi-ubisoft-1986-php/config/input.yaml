@@ -12,6 +12,7 @@ actions:
   inventory: [I]
   move: [M]
   door_direction: [F]
+  use_item: [U]
   character: [C]
   gallery: [G]
   restart: [R]

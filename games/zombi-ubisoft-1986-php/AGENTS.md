@@ -8,7 +8,7 @@ This is a 320×200 French prototype of the 1986 CPC game, not the former platfor
 - `Scene/TitleScene.php`: original title/music, new game, continue, help and 90-room gallery.
 - `Scene/PlayScene.php`: update/render only; keyboard/mouse, pause/restart/help and local versioned saves.
 - Every scene resets state in `enter()`. Sleeping characters remain in the party while others play.
-- Controls: arrows + Return/Space, Tab cancel, Escape pause, F1 help, M movement, I equip, C/1–4 character, F5 save, F9 load.
+- Controls: arrows + Return/Space, Tab cancel, Escape pause, F1 help, M movement, I equip, U use held item, C/1–4 character, F5 save, F9 load.
 - Smoke: `PlayScene`, `demo:true`; moves roof → terrace → stairs → level 3, then switches survivor.
 - Rendering test params: `gallery:true`, `room:1..90`. Gallery pauses simulation and does not establish ordinary access to a room.
 - `tests/WorldTest.php`: observed movement, party independence, key/fuel ending gate, containers, equipment activation,
@@ -59,7 +59,14 @@ Preserve the original #8A58 outside-window kill: controlled and natural timed-CO
 See `tools/extract/COMBAT-ET-TIRS.md` (92 native checks) and `tools/browser-combat.cjs` (controlled equipment/cursor fixtures).
 Saves 0.8 require per-room strength; 0.2–0.7 migrate with reference strength 27. Combat controls reset on load, damage persists.
 Fresh-game browser escape uses rapid alternating keyboard input for melee; its PHP bridge remains read-only.
-Enemy reference stats 31/27, exact firmware aiming timing, ranged retaliation and friendly targets remain provisional.
+Version 0.9 rolls zombie hp 26–41/strength 58-hp and raider hp 30–45/strength 65-hp.
+Raider shooter eligibility uses native randomScore <75. Stats/trait persist per room opponent to preserve saved damage;
+the original rerolls more often in its main menu loop. See `tools/extract/PROFILS-ET-RIPOSTES.md` (24 native checks).
+The global 16-bit alert counter queues a single reply each 256 ticks; busy modes defer it and failed rolls retain it.
+A successful reply subtracts 6 sequentially from F then H. An idle normal encounter engages melee at 512 ticks.
+Aim timeout joins melee directly without dispatching a queued shot first. U can activate a held weapon from combat.
+Saves 0.9 retain alertTicks, rangedPending, rangedArmed and per-room shooter; older saves default these without deleting wounds.
+Exact firmware timing, frequent native stat rerolls and friendly targets remain provisional.
 Other special exits and secondary item uses also remain incomplete.
 Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.

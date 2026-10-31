@@ -45,6 +45,7 @@ backgrounds. These captures establish rendering, not natural access to each room
 `EVASION.md` documents ten original quest-gate checks and the prototype's fresh-game escape route,
 including shared lighting, the freezer and automatic arrival. `ENNEMIS-ET-HORLOGE.md` adds 17 native
 checks of periodic movement, entrance arrivals and the variable freezer quota. `COMBAT-ET-TIRS.md` adds
-92 native melee/firearm checks and documents the counter-intuitive outside-window shot branch. Combat remains provisional;
+92 native melee/firearm checks and documents the counter-intuitive outside-window shot branch.
+`PROFILS-ET-RIPOSTES.md` adds 24 native checks of stat distributions and queued ranged attacks. Combat remains provisional;
 the prototype route does not establish full CPC parity.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

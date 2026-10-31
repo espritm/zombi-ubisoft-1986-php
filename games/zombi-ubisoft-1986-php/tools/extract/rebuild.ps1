@@ -66,8 +66,16 @@ if (-not $ReuseCaptures) {
     foreach ($delay in @(0,1,2,3,12,24,36,48,60,72,84)) {
         Step @('python3','-I','/workspace/analysis/probe-natural-shots.py',"$delay")
     }
+    foreach ($phase in @(1,0)) {
+        foreach ($randomInput in @('natural','0','1','7','15')) {
+            Step @('python3','-I','/workspace/analysis/probe-encounter-stats.py',"$phase",$randomInput)
+        }
+    }
+    foreach ($case in @('cadence','low','unarmed','empty','low-f','low-h','armed-edge','unarmed-edge','zombie')) {
+        Step @('python3','-I','/workspace/analysis/probe-ranged-reply.py',$case)
+    }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

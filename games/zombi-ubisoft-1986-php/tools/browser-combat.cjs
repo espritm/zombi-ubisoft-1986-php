@@ -12,7 +12,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  const state=async()=>{await php(`file_put_contents('/tmp/combat.json',json_encode(['save'=>$w->export(),'mode'=>$w->mode,'pressure'=>$w->pressure,'delay'=>$w->shotDelay,'width'=>$w->aimWidth()]));`);return p.evaluate(()=>JSON.parse(window.JumPHP.FS.readFile('/tmp/combat.json',{encoding:'utf8'})));};
  await p.goto(process.argv[2],{waitUntil:'load'});await ready();await key('Enter');await wait(200);
  const base=Buffer.from(JSON.stringify((await state()).save)).toString('base64');
- const setup=async(weapon,trained=false)=>{await php(`$base=json_decode(base64_decode('${base}'),true);$base['enemySeed']=0;$w->restore($base);$w->party[3]['position']=array_search(41,$w->map,true);$w->party[3]['held']=${weapon};$w->party[3]['trained']=${trained?'true':'false'};$w->chooseAction(3);`);await key('Enter');};
+ const setup=async(weapon,trained=false)=>{await php(`$base=json_decode(base64_decode('${base}'),true);$base['enemySeed']=0;$w->restore($base);$w->party[3]['position']=array_search(41,$w->map,true);$w->rooms[41]['hp']=31;$w->rooms[41]['strength']=27;$w->rooms[41]['shooter']=false;$w->party[3]['held']=${weapon};$w->party[3]['trained']=${trained?'true':'false'};$w->chooseAction(3);`);await key('Enter');};
  const shot=async cell=>{
   await p.evaluate(cell=>{const handler=e=>{if(e.key!=='Enter')return;window.removeEventListener('keydown',handler,true);window.JumPHP.php(`$s=$GLOBALS['app']->engine->scenes->current();$w=(new ReflectionProperty($s,'world'))->getValue($s);$w->aim=${(cell-2+.1)/56};`);};window.addEventListener('keydown',handler,true);},cell);
   await key('Enter');

@@ -31,7 +31,8 @@ final class EnemyClockTest extends TestCase
         $copy=$this->world();self::assertTrue($copy->restore($w->export()));
         $w->advance(0.08);$copy->advance(0.08);
         self::assertSame(0,$w->rooms[18]['prefix'][6]);self::assertSame(1,$w->rooms[19]['prefix'][6]);
-        self::assertSame(31,$w->rooms[19]['hp']);self::assertSame(27,$w->rooms[19]['strength']);
+        self::assertGreaterThanOrEqual(26,$w->rooms[19]['hp']);self::assertLessThanOrEqual(41,$w->rooms[19]['hp']);
+        self::assertSame(58,$w->rooms[19]['hp']+$w->rooms[19]['strength']);self::assertFalse($w->rooms[19]['shooter']);
         self::assertSame($w->export(),$copy->export());self::assertEqualsWithDelta(0,$w->export()['enemyTicks'],0.001);
     }
 

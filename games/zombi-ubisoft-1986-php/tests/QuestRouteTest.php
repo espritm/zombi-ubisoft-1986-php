@@ -135,8 +135,8 @@ final class QuestRouteTest extends TestCase
         self::assertSame($w->export()['zombieTarget'],$picked);self::assertSame($picked,$w->frozenBodies);self::assertTrue($w->raidersArrived);
         self::assertTrue($w->selectPerson(1));$this->inventory($w,18,35);$this->travel($w,78,true);
         $this->object($w,8,5);$this->floor($w,52);$this->inventory($w,18,42);$w->chooseAction(3);$w->activateAction();
-        self::assertSame(1,$w->fuelCan);$this->object($w,1,52);$this->travel($w,62,true);
-        $this->object($w,8,6);$this->floor($w,52);$w->chooseAction(3);$w->activateAction();self::assertSame(1,$w->fuelTank);
+        self::assertSame(1,$w->fuelCan);$this->object($w,1,52);$this->inventory($w,18,35);$this->travel($w,62,true);
+        $this->object($w,8,6);$this->floor($w,52);$this->inventory($w,18,42);$w->chooseAction(3);$w->activateAction();self::assertSame(1,$w->fuelTank);
         $this->object($w,8,4);$w->chooseAction(16);$w->activateAction();
         self::assertTrue($w->selectPerson(3));$this->travel($w,62,true);$w->chooseAction(16);$w->activateAction();
         foreach([2,0] as $person){self::assertTrue($w->selectPerson($person));if($person===2){$this->inventory($w,18,34);}$this->travel($w,62,true);$w->chooseAction(16);$w->activateAction();}

@@ -15,7 +15,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  });
  const person=s=>s.save.party[s.save.active];
  const choose=async(n,count)=>{let s=await state();for(let i=0;i<(n-s.choice+count)%count;i++)await key('ArrowDown');await key('Enter');};
- const select=async n=>{const s=await state();assert.equal(s.mode,'normal',s.message);let d=(n-s.action+18)%18,k=d<=9?'ArrowDown':'ArrowUp';if(d>9)d=18-d;for(let i=0;i<d;i++)await key(k);await key('Enter');};
+ const select=async n=>{if(n===3){await key('u');return;}let s=await state();for(let i=0;i<2&&s.mode==='combat';i++){await key('Tab');s=await state();}assert.equal(s.mode,'normal',s.message);let d=(n-s.action+18)%18,k=d<=9?'ArrowDown':'ArrowUp';if(d>9)d=18-d;for(let i=0;i<d;i++)await key(k);await key('Enter');};
  const fight=async()=>{
   for(let i=0;i<600;i++){
    let s=await state();assert.equal(person(s).state,0,s.message);if(s.save.rooms[s.room].prefix[6]===0)return;
@@ -69,7 +69,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  }
  const completed=await state();assert.equal(picked,completed.save.zombieTarget);assert.equal(completed.save.frozenBodies,picked);assert.equal(completed.save.raidersArrived,true);await key('F5');await wait(2300);await page.reload({waitUntil:'load'});await ready();await key('c');await wait(300);assert.equal((await state()).save.frozenBodies,picked);assert.equal((await state()).save.raidersArrived,true);console.log('Arrival and save/reload verified');
  await actor(1);await equip(35);await travel(78);await page.screenshot({path:process.argv[3].replace('.png','-truck.png')});await object(8,5);await floor(52);await equip(42);await select(3);assert.equal((await state()).save.fuelCan,1);await object(1,52);
- await travel(62);await object(8,6);await floor(52);await select(3);assert.equal((await state()).save.fuelTank,1);await object(8,4);await select(16);
+ await equip(35);await travel(62);await object(8,6);await floor(52);await equip(42);await select(3);assert.equal((await state()).save.fuelTank,1);await object(8,4);await select(16);
  for(const n of[3,2,0]){console.log('Boarding survivor',n);await actor(n);if(n===2)await equip(34);await travel(62);await select(16);}
  assert.deepEqual((await state()).save.party.map(p=>p.inside),[90,90,90,90]);await object(4,64);await object(4,72);assert.equal((await state()).ending,'victory');
  await page.screenshot({path:process.argv[3]});assert.equal(errors.length,0,errors.join('\n'));const end=(await state()).save;console.log('Timed enemy periods elapsed during route:',Math.floor((startingClock.enemyTicks+(end.minutes-startingClock.minutes)*250)/15104));console.log('Complete fresh-game escape OK: four survivors, no game-state injection.');

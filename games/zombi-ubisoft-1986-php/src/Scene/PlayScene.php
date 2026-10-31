@@ -72,7 +72,7 @@ final class PlayScene extends AbstractScene
         if ($a->isPressed('cancel')) { $w->cancel(); }
         if ($a->isPressed('door_direction')) { $w->requestDoorDirection(); }
         for ($i = 1; $i <= 4; $i++) { if ($a->isPressed('person' . $i)) { $w->selectPerson($i - 1); } }
-        foreach (['character' => 10, 'inventory' => 18, 'move' => 15] as $key => $action) {
+        foreach (['character' => 10, 'inventory' => 18, 'move' => 15, 'use_item' => 3] as $key => $action) {
             if ($a->isPressed($key)) { $w->chooseAction($action); $w->activateAction(); }
         }
         foreach (['left' => [-1, 0], 'right' => [1, 0], 'up' => [0, -1], 'down' => [0, 1]] as $key => [$dx, $dy]) {
@@ -168,7 +168,7 @@ final class PlayScene extends AbstractScene
     public static function helpPanel(CpcView $v, Renderer $r): void
     {
         $v->panel($r, 'ZOMBI - AIDE DU PROTOTYPE', ['FLECHES : ACTION / SELECTION', 'ENTREE / ESPACE : VALIDER',
-            'TAB : ANNULER  ECHAP : PAUSE', '1-4 : SURVIVANT  C : CHOISIR', 'M : SE DEPLACER  I : EQUIPER',
+            'TAB : ANNULER  ECHAP : PAUSE', '1-4 : SURVIVANT  C : CHOISIR', 'M:BOUGER I:EQUIPER U:UTILISER',
             'SOURIS : ICONES, OBJETS, PORTRAITS', 'F5 : SAUVER  F9 : CHARGER', 'COMBAT : ALTERNER VITE G/D',
             'VIDEO : LECTEUR + CASSETTE + TV', 'OUVRIR/FERMER PUIS F : DIRECTION', 'COMBAT ENCORE PROVISOIRE', 'ENTREE / ECHAP : FERMER']);
     }
