@@ -42,5 +42,7 @@ backgrounds. These captures establish rendering, not natural access to each room
 `ASCENSEUR-ET-CORDE.md` documents the eight additional lift/rope checks and controlled starting conditions.
 `CAMIONS-ET-TERMINAL.md` documents three truck routes, six exact background variants and the computer commands.
 `VIDEO-ET-PARCOURS.md` documents seven video checks and a fresh-game browser route without game-state injection.
-The full escape route and exact combat balancing remain unverified.
+`EVASION.md` documents ten original quest-gate checks and the prototype's fresh-game escape route,
+including shared lighting, the freezer and automatic arrival. Exact combat balancing and periodic enemy
+migration/respawning remain incomplete; the prototype route does not establish full CPC parity.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

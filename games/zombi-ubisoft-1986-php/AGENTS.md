@@ -20,7 +20,7 @@ This is a 320×200 French prototype of the 1986 CPC game, not the former platfor
 - Saves 0.5 retain installed `videoCassette` (0 or 50); 0.4/0.3/0.2 migrate with empty player. Keep the existing save filename.
 - Video: 60→65 powers player, put item 50 on 65, 61→66 powers TV; interact 65 advances 80 minutes and trains occupants of room 29.
 - `QuestRouteTest.php` and `tools/browser-route.cjs` test roof→tape→video→roof from a fresh game without state injection.
-  This validates the video supply route, not the entire escape quest or full original parity.
+  This validates the video supply route. The new full escape route is in `QuestRouteTest` and `tools/browser-escape.cjs`.
 - Truck routes: interior 87 maps 77→65, 88 maps 72→66, 89 maps 82→64; contact 68 is required.
   Copy first 30 source object cells, clear destination 32–39, update prefix +9 and blocked exits, transport matching interiors.
 - `assets/original/trucks.png`: six private background variants, selected by room ID and prefix +9.
@@ -40,8 +40,12 @@ Check the home page on desktop and phone with `siteshot`. Publish only after pri
 
 ## Scope and remaining work
 
-Ordinary exploration, lifts, rope routes, trucks, the computer, video playback and core object state are implemented. Other special exits,
-secondary item uses and the full natural quest remain incomplete and are labelled in game and on the page.
+Version 0.6 adds shared torch lighting, tool-49 door direction selection (F), corpse pickup/drop/freezing,
+and automatic raider arrival once 34 bodies are frozen and three trucks are parked. See `tools/extract/EVASION.md`.
+The new-game escape test uses ordinary actions without injecting positions, inventory, health or enemies.
+Saves retain frozenBodies, raidersArrived and zombieTarget; older formats 0.2–0.5 migrate with default counters.
+Ordinary exploration, lifts, rope routes, trucks, computer, video and the prototype escape chain are implemented.
+Other special exits, secondary item uses, periodic enemy migration/respawning and ammunition remain incomplete.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

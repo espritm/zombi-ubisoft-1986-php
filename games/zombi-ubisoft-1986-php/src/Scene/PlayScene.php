@@ -70,6 +70,7 @@ final class PlayScene extends AbstractScene
         if ($a->isPressed('save')) { $this->saveGame(); return; }
         if ($a->isPressed('load')) { $this->loadGame(); return; }
         if ($a->isPressed('cancel')) { $w->cancel(); }
+        if ($a->isPressed('door_direction')) { $w->requestDoorDirection(); }
         for ($i = 1; $i <= 4; $i++) { if ($a->isPressed('person' . $i)) { $w->selectPerson($i - 1); } }
         foreach (['character' => 10, 'inventory' => 18, 'move' => 15] as $key => $action) {
             if ($a->isPressed($key)) { $w->chooseAction($action); $w->activateAction(); }
@@ -79,7 +80,7 @@ final class PlayScene extends AbstractScene
             if ($w->mode === 'object') { $w->moveCursor($dx, $dy); }
             elseif ($w->mode === 'combat' || ($w->mode === 'normal' && $w->current()['prefix'][6] > 0 && $dx)) { $w->strike($dx); }
             elseif ($w->mode === 'normal') { $w->chooseAction(($w->action - 1 + ($dx ?: $dy) + 18) % 18 + 1); }
-            elseif (in_array($w->mode, ['direction', 'character', 'inventory', 'container', 'lift'], true)) { $w->changeChoice($dx ?: $dy); }
+            elseif (in_array($w->mode, ['direction', 'doorDirection', 'character', 'inventory', 'container', 'lift'], true)) { $w->changeChoice($dx ?: $dy); }
         }
         if ($a->isPressed('confirm')) { $w->confirm(); }
         $this->mouse();
@@ -124,8 +125,8 @@ final class PlayScene extends AbstractScene
         if ($w->mode === 'object' && $x >= 8 && $x < 168 && $y >= 64 && $y < 128) {
             $w->col = intdiv($x - 8, 16); $w->row = intdiv($y - 64, 16); $w->confirm(); return;
         }
-        if ($x >= 218 && $y >= 54 && $y < 114 && in_array($w->mode, ['direction','character','inventory','container','lift'], true)) {
-            $count = match ($w->mode) {'direction'=>6, 'lift'=>5, 'character'=>4, 'container'=>count($w->containerChoices()), default=>count($w->inventoryChoices())};
+        if ($x >= 218 && $y >= 54 && $y < 114 && in_array($w->mode, ['direction','doorDirection','character','inventory','container','lift'], true)) {
+            $count = match ($w->mode) {'direction','doorDirection'=>6, 'lift'=>5, 'character'=>4, 'container'=>count($w->containerChoices()), default=>count($w->inventoryChoices())};
             $choice = intdiv($y - 54, 10);
             if ($choice < $count) { $w->choice = $choice; $w->confirm(); }
         }
@@ -169,6 +170,6 @@ final class PlayScene extends AbstractScene
         $v->panel($r, 'ZOMBI - AIDE DU PROTOTYPE', ['FLECHES : ACTION / SELECTION', 'ENTREE / ESPACE : VALIDER',
             'TAB : ANNULER  ECHAP : PAUSE', '1-4 : SURVIVANT  C : CHOISIR', 'M : SE DEPLACER  I : EQUIPER',
             'SOURIS : ICONES, OBJETS, PORTRAITS', 'F5 : SAUVER  F9 : CHARGER', 'COMBAT : ALTERNER GAUCHE/DROITE',
-            'VIDEO : ALLUMER PUIS POSER CASSETTE', 'ALLUMER TV PUIS ACTIONNER LECTEUR', 'QUETE ET COMBAT ENCORE PROVISOIRES', 'ENTREE / ECHAP : FERMER']);
+            'VIDEO : LECTEUR + CASSETTE + TV', 'OUVRIR/FERMER PUIS F : DIRECTION', 'COMBAT ENCORE PROVISOIRE', 'ENTREE / ECHAP : FERMER']);
     }
 }

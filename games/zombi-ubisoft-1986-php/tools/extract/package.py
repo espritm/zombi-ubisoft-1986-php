@@ -23,6 +23,11 @@ trucks=Image.new('RGB',(960,80))
 for i,(room,variant) in enumerate(((64,'parked'),(65,'parked'),(66,'parked'),(72,'empty'),(77,'empty'),(82,'empty'))):
     trucks.paste(Image.open(source/f'trucks/background-{room:02d}-{variant}.png'),(i*160,0))
 trucks.save(out/'trucks.png')
+Image.open(source/'raiders-background.png').save(out/'raiders.png')
+enemies=Image.new('RGB',(64,32))
+for i,address in enumerate((0x5201,0x5301)):
+    enemies.paste(graphics(d.mem,address,8,32,1,mode=1,rgb=d.rgb,gap=0),(i*32,0))
+enemies.save(out/'enemies.png')
 sprites=Image.new('RGBA',(320,256),(0,0,0,0))
 for entry in objects:
     i=entry['id']-1;entry['x']=i%10*32;entry['y']=i//10*32

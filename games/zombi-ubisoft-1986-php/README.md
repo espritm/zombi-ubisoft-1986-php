@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.5
+# Zombi — prototype CPC 0.6
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -24,6 +24,7 @@ Au titre : Entrée pour jouer, C pour continuer, G pour la galerie des 90 décor
 En partie : flèches pour parcourir les actions/listes ou sélectionner une case, Entrée/Espace pour valider,
 Tab pour annuler, Échap pour la pause, M pour les directions, I pour équiper, C ou 1–4 pour les personnages.
 La souris permet de choisir les portraits, icônes, objets et listes. F5 sauvegarde, F9 recharge.
+Pour une porte sans case sélectionnable : choisir OUVRIR ou FERMER, puis F et la direction.
 Les sauvegardes restent sur le navigateur utilisé et ne sont pas compatibles avec le CPC.
 
 Parcours de contrôle : départ sur le toit (Patrick), M → Est → Entrée pour la terrasse,
@@ -50,16 +51,21 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
   La séance avance l’horloge de 80 minutes et entraîne les survivants présents dans la pièce.
 - Sauvegarde de la cassette insérée ; chargement conservé pour les parties 0.2, 0.3 et 0.4.
 
+- Corps transportables, entreposage dans la chambre froide et arrivée automatique du camion de carburant.
+- Accès aux clés par l'outil 49, éclairage partagé et sauvegarde des compteurs de progression ; migration des parties 0.2 à 0.5.
+
 **Ce n’est pas encore une adaptation complète.** Certains passages spéciaux,
-usages secondaires d’objets, entraînement, munitions et événements narratifs restent à compléter.
-La chaîne carburant/contact/décollage est testée avec des préconditions contrôlées ;
-aucun parcours naturel complet depuis une nouvelle partie n’est revendiqué.
+usages secondaires d’objets, munitions et déplacements/réapparitions des ennemis restent à compléter.
+Un parcours d'évasion du prototype depuis une nouvelle partie est testé, jusqu'au décollage des quatre survivants,
+sans injection d'objet, de position, de santé ou d'ennemi. Cela ne prouve pas une équivalence complète au CPC.
 Les chronomètres de repos/réanimation proviennent des observations ; l’horloge et le combat doivent encore être affinés.
 Les observations ajoutées pour cette version sont détaillées dans [ASCENSEUR-ET-CORDE.md](tools/extract/ASCENSEUR-ET-CORDE.md).
 Les trajets, les réponses de l’ordinateur et la correction des corps sont documentés dans [CAMIONS-ET-TERMINAL.md](tools/extract/CAMIONS-ET-TERMINAL.md).
 Le parcours toit → cassette → lecture → sauvegarde/rechargement → retour au toit passe dans le navigateur,
-sans injection d’objet, position, santé ou ennemi. Ce premier parcours ne valide pas encore la quête d’évasion complète.
+sans injection d’objet, position, santé ou ennemi.
 Voir [VIDEO-ET-PARCOURS.md](tools/extract/VIDEO-ET-PARCOURS.md) et `tools/browser-route.cjs`.
+Le parcours d'évasion est décrit dans [EVASION.md](tools/extract/EVASION.md), avec ses préconditions de vérification CPC et ses limites.
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.6.
 
 ## Page et publication
 

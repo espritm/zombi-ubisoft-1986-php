@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.5.0';
+    public const VERSION = '0.6.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -35,6 +35,9 @@ final class World
     public int $fuelCan = 0;
     public int $fuelTank = 0;
     public int $videoCassette = 0;
+    public int $frozenBodies = 0;
+    public bool $raidersArrived = false;
+    private int $zombieTarget = 0;
     public float $minutes = 615.0;
     public string $ending = '';
     public string $terminalInput = '';
@@ -68,6 +71,7 @@ final class World
         $this->containers = $data['containers'];
         foreach ($data['objects'] as $o) { $this->objects[$o['id']] = $o; }
         $this->initialMap = $this->map;
+        foreach ($this->rooms as $id => $room) { if ($id <= 63) { $this->zombieTarget += $room['prefix'][6]; } }
     }
 
     public function roomId(?int $person = null): int
@@ -82,7 +86,11 @@ final class World
 
     public function dark(): bool
     {
-        if ($this->electricity || $this->person()['used'] === 43) { return false; }
+        if ($this->electricity) { return false; }
+        $location = $this->map[$this->person()['position']] ?? 0;
+        foreach ($this->party as $person) {
+            if ($person['used'] === 43 && ($this->map[$person['position']] ?? -1) === $location) { return false; }
+        }
         $light = $this->current()['prefix'][7];
         $hour = ((int)floor($this->minutes / 60)) % 24;
         return $light === 255 || ($light !== 0 && ($hour < 6 || $hour >= 22));
@@ -163,7 +171,7 @@ final class World
     public function changeChoice(int $delta): void
     {
         $count = $this->mode === 'terminal' ? count(self::TERMINAL_COMMANDS) : ($this->mode === 'lift' ? 5 :
-            ($this->mode === 'direction' ? 6 : ($this->mode === 'character' ? 4 :
+            (in_array($this->mode, ['direction', 'doorDirection'], true) ? 6 : ($this->mode === 'character' ? 4 :
             ($this->mode === 'container' ? count($this->containerChoices()) : count($this->inventoryChoices())))));
         $this->choice = ($this->choice + $delta + max(1, $count)) % max(1, $count);
     }
@@ -181,6 +189,7 @@ final class World
             case 'normal': $this->activateAction(); return;
             case 'character': $this->selectPerson($this->choice); return;
             case 'direction': $this->direction = $this->choice; $this->move($this->choice); return;
+            case 'doorDirection': $this->changeDoor($this->choice); return;
             case 'lift': $this->moveLift($this->choice); return;
             case 'terminal': $this->terminalCommand($this->terminalInput ?: self::TERMINAL_COMMANDS[$this->choice]); return;
             case 'inventory': $this->pickInventory(); return;
@@ -222,6 +231,71 @@ final class World
         $this->message = self::DIRECTIONS[$direction];
         $this->pressure = 0; $this->battleTime = 0;
         return true;
+    }
+
+    public function requestDoorDirection(): void
+    {
+        if ($this->mode === 'object' && in_array($this->pending, ['open', 'close'], true)) {
+            $this->mode = 'doorDirection'; $this->choice = 0; $this->message = 'CHOISIR LE PASSAGE';
+        }
+    }
+
+    private function changeDoor(int $direction): void
+    {
+        $this->mode = 'normal';
+        if ($this->person()['held'] !== 49 || $this->person()['inside'] !== 0 || !in_array($direction, [0,2,3,5], true)) {
+            $this->message = 'OUTIL 49 NECESSAIRE'; return;
+        }
+        $target = $this->map[$this->person()['position'] + self::DELTAS[$direction]] ?? null;
+        $field = self::EXIT_FIELDS[$direction]; $open = $this->pending === 'open';
+        $from = $open ? 30 : 20; $to = $open ? 20 : 30;
+        if ($target === null) { $this->message = 'AUCUN PASSAGE'; return; }
+        if ($this->current()['prefix'][$field] === $from) {
+            $this->rooms[$this->roomId()]['prefix'][$field] = $to;
+            $opposite = [0=>2,2=>0,3=>5,5=>3][$direction];
+            $this->rooms[$target]['prefix'][self::EXIT_FIELDS[$opposite]] = $to;
+        } elseif ($target === 59 && $this->rooms[59]['prefix'][2] === $from) {
+            $this->rooms[59]['prefix'][2] = $to;
+        } else { $this->message = 'PASSAGE NON VERROUILLABLE'; return; }
+        $this->message = $open ? 'PASSAGE OUVERT' : 'PASSAGE FERME';
+    }
+
+    private function putCorpse(): void
+    {
+        $this->removeItem(53); $this->mode = 'normal';
+        if ($this->roomId() === 11) {
+            $this->frozenBodies = min(255, $this->frozenBodies + 1);
+            $this->message = 'CADAVRE ENTREPOSE'; $this->checkArrival();
+        } else {
+            $r = &$this->rooms[$this->roomId()]; $r['prefix'][8] = min(255, $r['prefix'][8] + 1);
+            $r['cells'][30] = 53; $r['cells'][31] = 53; $this->message = 'CADAVRE POSE';
+        }
+    }
+
+    /** #828D–#8367: frozen quota and three blocked entrances, not radio activation. */
+    private function checkArrival(): void
+    {
+        if ($this->raidersArrived || $this->frozenBodies < $this->zombieTarget) { return; }
+        foreach ([64,65,66] as $id) { if ($this->rooms[$id]['prefix'][9] === 0) { return; } }
+        $this->raidersArrived = true;
+        for ($id = 64; $id <= 86; $id++) { $this->rooms[$id]['prefix'][6] = 0; }
+        $r = &$this->rooms[78]; $r['prefix'][9] = 78; $r['prefix'][6] = 2;
+        for ($i = 0; $i < 30; $i++) { $r['cells'][$i] = 255; }
+        for ($i = 32; $i < 40; $i++) { $r['cells'][$i] = 0; }
+        $r['cells'][17] = 5; unset($r);
+        $this->rooms[65]['prefix'][6] = 2; $this->rooms[65]['prefix'][2] = 20; $this->rooms[65]['prefix'][9] = 0;
+        for ($i = 0; $i < 30; $i++) {
+            $this->rooms[77]['cells'][$i] = $this->rooms[65]['cells'][$i]; $this->rooms[65]['cells'][$i] = 0;
+        }
+        for ($i = 32; $i < 40; $i++) { $this->rooms[77]['cells'][$i] = 0; }
+        $this->rooms[19]['prefix'][6] = 2; $this->rooms[19]['prefix'][0] = 20;
+        $this->rooms[77]['prefix'][6] = 1; $this->rooms[77]['prefix'][9] = 77;
+        if ($this->rooms[21]['prefix'][1] === 20) { $this->rooms[21]['prefix'][6] = 1; }
+        $this->rooms[22]['prefix'][6] = 1; $this->rooms[23]['prefix'][6] = 1;
+        $position = array_search(77, $this->map, true);
+        foreach ($this->party as &$person) { if ($person['inside'] === 87 && $position !== false) { $person['position'] = $position; } }
+        unset($person);
+        $this->pressure = 0; $this->battleTime = 0; $this->message = 'UN AUTRE CAMION EST ARRIVE';
     }
 
     /** #9A2B/#9B11: the cabin is room 63, moved between five map cells. */
@@ -305,7 +379,7 @@ final class World
         }
         unset($survivor);
         $this->mode = 'normal'; $this->pressure = 0; $this->battleTime = 0;
-        $this->message = 'ACCES BLOQUE. MOTEUR ARRETE'; return true;
+        $this->message = 'ACCES BLOQUE. MOTEUR ARRETE'; $this->checkArrival(); return true;
     }
 
     /** Original #973E–#97E1: hints and the active survivor's training flag. */
@@ -380,7 +454,8 @@ final class World
             $this->removeItem($item);
             $this->message = 'CONSOMME'; $this->mode = 'normal';
         } elseif ($this->pending === 'put' && $item !== 0) {
-            $this->selectedItem = $item; $this->mode = 'object';
+            $this->selectedItem = $item;
+            if ($item === 53) { $this->putCorpse(); } else { $this->mode = 'object'; }
         } else { $this->message = 'CHOISIR UN OBJET'; }
     }
 
@@ -394,7 +469,11 @@ final class World
             }
             if ($item < 33 || $item > 55) { $this->message = 'RIEN A PRENDRE ICI'; return; }
             if (!$this->addItem($item)) { $this->message = 'INVENTAIRE PLEIN'; return; }
-            if (!in_array($item, [54, 55], true)) { $this->replaceObject($item, 0); }
+            if ($item === 48) { $this->rooms[$this->roomId()]['cells'][$this->row * 10 + $this->col] = 0; }
+            elseif ($item === 53) {
+                $this->rooms[$this->roomId()]['prefix'][8] = max(0, $this->current()['prefix'][8] - 1);
+                if ($this->current()['prefix'][8] === 0) { $this->replaceObject(53, 255); }
+            } elseif (!in_array($item, [54, 55], true)) { $this->replaceObject($item, 0); }
             $this->message = self::itemName($item) . ' PRIS';
         } elseif ($this->pending === 'open' || $this->pending === 'close') {
             $open = $this->pending === 'open';
@@ -608,6 +687,7 @@ final class World
     {
         if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
         $this->elapsed += $dt; $this->minutes += $dt * 0.2;
+        $this->checkArrival();
         if ($this->mode === 'aim') { $this->aim += $dt * 1.2; }
         foreach ($this->party as &$p) {
             if (in_array($p['state'], [16, 64], true)) { $p['ticks'] += $dt * 50; }
@@ -646,15 +726,20 @@ final class World
         return ['version' => self::VERSION, 'map' => $this->map, 'rooms' => $this->rooms, 'party' => $this->party,
             'containers' => $this->containers, 'active' => $this->active, 'minutes' => $this->minutes,
             'electricity' => $this->electricity, 'fuelCan' => $this->fuelCan, 'fuelTank' => $this->fuelTank,
-            'videoCassette' => $this->videoCassette];
+            'videoCassette' => $this->videoCassette, 'frozenBodies' => $this->frozenBodies,
+            'raidersArrived' => $this->raidersArrived, 'zombieTarget' => $this->zombieTarget];
     }
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
+        $frozen = $save['frozenBodies'] ?? ($save['version'] === self::VERSION ? null : 0);
+        $raiders = $save['raidersArrived'] ?? ($save['version'] === self::VERSION ? null : false);
+        if (!is_int($frozen) || $frozen < 0 || $frozen > 255 || !is_bool($raiders) ||
+            ($save['version'] === self::VERSION && ($save['zombieTarget'] ?? null) !== $this->zombieTarget)) { return false; }
         $map = ($save['version'] === '0.2.0') ? $this->initialMap : ($save['map'] ?? null);
         if (!is_array($map)) { return false; }
         $lift = array_keys($map, 63, true);
@@ -699,6 +784,7 @@ final class World
         }
         $this->rooms = $save['rooms']; $this->party = $save['party']; $this->containers = $save['containers']; $this->map = $map;
         $this->videoCassette = $cassette;
+        $this->frozenBodies = $frozen; $this->raidersArrived = $raiders;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
         $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);

@@ -11,6 +11,7 @@ actions:
   help: [F1, H]
   inventory: [I]
   move: [M]
+  door_direction: [F]
   character: [C]
   gallery: [G]
   restart: [R]
