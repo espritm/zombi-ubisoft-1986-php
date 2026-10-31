@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.13
+# Zombi — prototype CPC 0.14
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -49,6 +49,8 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
   partagé conservé dans les sauvegardes et trousse réutilisable après expiration.
 - Effets périodiques d'une maladie déjà présente et des corps voisins sur S,
   compteur de blessures, report dans les menus et conservation dans les sauvegardes.
+- Seuils périodiques de faim et fatigue, sommeil forcé, réveil et récupération ;
+  compteurs sauvegardés et indépendants des sauts de l'heure affichée.
 - Combat des survivants zombifiés présents dans la même pièce et le même véhicule ;
   blessures sauvegardées et élimination définitive sans ajout au quota de corps.
 - Sélecteur de cibles avec une arme à feu sans ennemi ordinaire : flèches ou 1–4,
@@ -86,7 +88,8 @@ Les combats contre les membres zombifiés du groupe sont détaillés dans [SURVI
 La sélection et les effets sur les autres personnages sont décrits dans [SELECTION-DES-CIBLES.md](tools/extract/SELECTION-DES-CIBLES.md).
 Les soins, leur délai partagé et les limites concernant la maladie sont dans [SOINS.md](tools/extract/SOINS.md).
 Les effets différés vérifiés sont détaillés dans [MALADIE-ET-CADAVRES.md](tools/extract/MALADIE-ET-CADAVRES.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.13.
+Les seuils de privation et la récupération sont détaillés dans [FAIM-ET-FATIGUE.md](tools/extract/FAIM-ET-FATIGUE.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.14.
 
 ## Page et publication
 

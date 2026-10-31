@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.13.0';
+    public const VERSION = '0.14.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -61,7 +61,6 @@ final class World
     private ?int $selectedTarget = null;
     private float $healingTicks = 0.0;
     private float $healthTicks = 0.0;
-    private int $lastHour = 10;
     private array $initialMap = [];
 
     public function __construct(array $data)
@@ -927,47 +926,42 @@ final class World
         }
     }
 
-    /** #7D67–#7DCD: existing illness and nearby corpses, in the original byte order. */
+    /** #7D09–#7DCD: deprivation, illness and nearby corpses in the original byte order. */
     private function periodicHealth(): void
     {
         $activeState = $this->person()['state'];
         foreach ($this->party as &$p) {
+            $p['foodHours'] = ($p['foodHours'] + 1) & 255;
+            if ($p['foodHours'] >= 7) { $p['gauges'][2] = ($p['gauges'][2] - 4) & 255; }
+            $p['awakeHours'] = ($p['awakeHours'] + 1) & 255;
+            $awake = $p['awakeHours'];
+            if ($awake >= 27) { $p['state'] = 16; $p['ticks'] = 0.0; }
+            elseif ($awake >= 19) {
+                // The native #7D43 test for 22 is unreachable: 22–26 already take the 12-point branch.
+                $loss = $awake <= 20 ? 4 : ($awake === 21 ? 8 : 12);
+                $p['gauges'][2] = ($p['gauges'][2] - $loss) & 255;
+            }
             if ($p['state'] < 32 && $p['illness'] > 0) {
-                if ($p['gauges'][2] < 10) { $p['gauges'][2] = 0; $p['state'] = 64; $p['ticks'] = 0.0; }
-                else { $p['gauges'][2] -= 10; }
+                $value = ($p['gauges'][2] - 10) & 255;
+                if ($value >= 128) { $p['gauges'][2] = 0; $p['state'] = 64; $p['ticks'] = 0.0; }
+                else { $p['gauges'][2] = $value; }
             }
             // The apparent infection roll cannot succeed: #8AF0 overwrites its B threshold.
             $room = $this->rooms[$this->map[$p['position']]];
             if ($room['prefix'][8] > 0 || count(array_intersect($room['cells'],[29,30,31,32])) > 0) {
                 $p['gauges'][2] = ($p['gauges'][2] - 4) & 255;
-                if ($p['gauges'][2] >= 128) { $p['state'] = 255; }
             }
+            if ($p['gauges'][2] >= 128) { $p['state'] = 255; }
         }
         unset($p);
-        if ($activeState === 0 && $this->party[$this->active]['state'] >= 32) {
+        if ($activeState === 0 && $this->party[$this->active]['state'] !== 0) {
             $this->resetCombat(); $this->mode = 'character'; $this->choice = $this->active; $this->message = 'CHOISIR UN SURVIVANT';
         }
     }
 
-    public function advance(float $dt): void
+    /** The CPC checks wake/reanimation before its periodic deprivation pass. */
+    private function advanceRest(float $dt): void
     {
-        if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
-        $this->healingTicks = max(0,$this->healingTicks - $dt * 50);
-        $this->healthTicks = fmod($this->healthTicks + $dt * 50,65536);
-        if ($this->mode === 'normal' && $this->healthTicks >= 15104) { $this->healthTicks = 0; $this->periodicHealth(); }
-        $wasEnemy = $this->opponent() !== null; $wasAiming = $this->mode === 'aim';
-        $this->minutes += $dt * 0.2;
-        // Independent of displayed hours: the original tests the high timer byte against #3B.
-        $this->enemyTicks += $dt * 50;
-        while ($this->enemyTicks >= 15104) { $this->enemyTicks -= 15104; $this->updateEnemies(); }
-        $this->checkArrival();
-        if ($this->mode === 'aim') {
-            $this->aimAge += $dt;
-            if ($this->shotDelay > 0) { $this->shotDelay = max(0,$this->shotDelay - $dt); }
-            else { $this->aim += $dt * (137.5 / 56); }
-            if ($this->aimAge >= 10.24) { $this->resetCombat(true); $this->mode = 'combat'; $this->message = 'COMBAT : ALTERNEZ G/D'; }
-        }
-        $autoCombat = $this->alert($dt);
         foreach ($this->party as &$p) {
             if (in_array($p['state'], [16, 64], true)) { $p['ticks'] += $dt * 50; }
             if ($p['state'] === 16 && $p['ticks'] >= 119808) {
@@ -983,15 +977,28 @@ final class World
             }
         }
         unset($p);
-        $hour = (int)floor($this->minutes / 60);
-        if ($hour !== $this->lastHour) {
-            $this->lastHour = $hour;
-            foreach ($this->party as &$p) {
-                $p['foodHours']++; $p['awakeHours']++;
-                if ($p['foodHours'] >= 7) { $p['gauges'][2] = max(0, $p['gauges'][2] - 4); }
-            }
-            unset($p);
+    }
+
+    public function advance(float $dt): void
+    {
+        if ($this->ending !== '' || in_array($this->mode, ['pause', 'restart', 'save', 'load'], true)) { return; }
+        $this->healingTicks = max(0,$this->healingTicks - $dt * 50);
+        $this->healthTicks = fmod($this->healthTicks + $dt * 50,65536);
+        $this->advanceRest($dt);
+        if ($this->mode === 'normal' && $this->healthTicks >= 15104) { $this->healthTicks = 0; $this->periodicHealth(); }
+        $wasEnemy = $this->opponent() !== null; $wasAiming = $this->mode === 'aim';
+        $this->minutes += $dt * 0.2;
+        // Independent of displayed hours: the original tests the high timer byte against #3B.
+        $this->enemyTicks += $dt * 50;
+        while ($this->enemyTicks >= 15104) { $this->enemyTicks -= 15104; $this->updateEnemies(); }
+        $this->checkArrival();
+        if ($this->mode === 'aim') {
+            $this->aimAge += $dt;
+            if ($this->shotDelay > 0) { $this->shotDelay = max(0,$this->shotDelay - $dt); }
+            else { $this->aim += $dt * (137.5 / 56); }
+            if ($this->aimAge >= 10.24) { $this->resetCombat(true); $this->mode = 'combat'; $this->message = 'COMBAT : ALTERNEZ G/D'; }
         }
+        $autoCombat = $this->alert($dt);
         if ($wasEnemy && !$wasAiming && !$autoCombat && $this->opponent() !== null && $this->person()['state'] === 0 && $this->mode === 'combat') {
             $this->melee($dt);
         }
@@ -1012,7 +1019,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -1060,6 +1067,10 @@ final class World
             foreach (['position', 'inside', 'state', 'awakeHours', 'foodHours'] as $key) {
                 if (!is_int($p[$key]) || $p[$key] < 0) { return false; }
             }
+            foreach (['awakeHours','foodHours'] as $field) {
+                if ($p[$field] > 255 && $save['version'] === self::VERSION) { return false; }
+                $party[$index][$field] = $p[$field] & 255;
+            }
             foreach (array_merge($p['bag'], [$p['held'], $p['used']]) as $item) {
                 if (!is_int($item) || $item < 0 || $item > 75) { return false; }
             }
@@ -1099,7 +1110,7 @@ final class World
         $this->healthTicks = (float)$health;
         $this->active = max(0, min(3, (int)($save['active'] ?? 3))); $this->minutes = max(0, (float)($save['minutes'] ?? 615));
         $this->electricity = (bool)($save['electricity'] ?? false); $this->fuelCan = max(0, (int)($save['fuelCan'] ?? 0));
-        $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0)); $this->lastHour = (int)floor($this->minutes / 60);
+        $this->fuelTank = max(0, (int)($save['fuelTank'] ?? 0));
         $this->resetCombat();
         $this->terminalInput = ''; $this->terminalLines = [];
         $this->mode = 'normal'; $this->ending = ''; $this->message = 'PARTIE CHARGEE'; return true;

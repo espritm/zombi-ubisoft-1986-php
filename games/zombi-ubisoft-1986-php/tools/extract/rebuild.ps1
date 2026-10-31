@@ -92,8 +92,12 @@ if (-not $ReuseCaptures) {
     foreach ($case in @('zombie','raider','party','wrap','fatal-f','fatal-h')) {
         Step @('python3','-I','/workspace/analysis/probe-exposure.py',$case)
     }
+    foreach ($case in @('food5','food6','food7','food254','food255','awake17','awake18','awake19','awake20','awake21','awake22','awake25','awake26','awake27','awake254','awake255','starve','combined-ill','combined-corpse','forced-sleep','forced-dead','forced-gone','repeat','wake','wake-cap','wake-period')) {
+        Step @('python3','-I','/workspace/analysis/probe-deprivation.py',$case)
+    }
+    foreach ($item in @(54,55)) { Step @('python3','-I','/workspace/analysis/probe-deprivation-consume.py',"$item") }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py','verify-target-selection.py','verify-healing.py','verify-illness.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py','verify-target-selection.py','verify-healing.py','verify-illness.py','verify-deprivation.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

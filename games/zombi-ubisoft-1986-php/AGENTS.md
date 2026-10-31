@@ -95,6 +95,13 @@ Older saves 0.2–0.12 default the two bytes to zero and healthTicks to enemyTic
 NPC timing remains separately ported; hunger/fatigue and party-body cleanup remain partial.
 See `tools/extract/MALADIE-ET-CADAVRES.md` (93 native checks), IllnessTest and `tools/browser-illness.cjs` (controlled fixtures).
 Do not assume a separate ammunition system exists without observing it in the original.
+Version 0.14 moves foodHours/awakeHours from display-hour changes into periodicHealth, incrementing modulo 256 before applying penalties.
+Food >=7 subtracts 4 S. Awake 19–20 subtracts 4, 21 subtracts 8, 22–26 subtracts 12; >=27 writes state 16 and restarts sleep ticks every pass.
+This native branch does not filter previous states; preserve it rather than inventing an unconditional eight-hour recovery.
+Apply byte arithmetic in deprivation → illness → corpse order, then final S>=128 sets state 255.
+Wake/reanimation precede periodicHealth; wake clears awakeHours and adds up to 8 S, food 55 clears only foodHours.
+Current saves require both counters <=255; 0.2–0.13 legacy values retain their low byte. No display-time catch-up.
+See `tools/extract/FAIM-ET-FATIGUE.md` (126 native checks), DeprivationTest and `tools/browser-deprivation.cjs` (controlled counters/timers).
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

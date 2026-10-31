@@ -1,5 +1,8 @@
 # Blessures, maladie et corps proches — version 0.13
 
+La faim et la fatigue ajoutées en 0.14 sont détaillées dans
+[FAIM-ET-FATIGUE.md](FAIM-ET-FATIGUE.md) ; les limites ci-dessous décrivent la version 0.13.
+
 ## Préconditions et mesures CPC
 
 `probe-illness.py` prépare Alexandre sur le toit avec un état, une jauge S et les
