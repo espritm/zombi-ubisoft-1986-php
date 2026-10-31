@@ -62,3 +62,18 @@ au clavier dans `browser-escape.cjs`.
 
 Les règles de tir, de dégâts et d'armes blanches restent provisoires. Cette version
 n'ajoute pas un système de munitions supposé : l'analyse de leurs routines doit continuer.
+
+## Validation du 31 octobre 2026
+
+- 17 contrôles dans l'original et 40 tests PHP passent, avec analyse statique, syntaxe
+  et démarrage de 600 images.
+- L'évasion locale et publiée complète passe avec les quatre survivants. Le test du modèle attend
+  également une première période avant de chercher les objets et suit le quota augmenté.
+- Le parcours publié au clavier s'est terminé avant le premier cycle de déplacement.
+  Le contrôle d'horloge séparé exerce ce cycle dans le navigateur ; il ne faut pas
+  présenter ce parcours rapide comme une traversée naturelle avec plusieurs cycles observés.
+- Les contrôles navigateur local et publié confirment les déplacements, le passage du quota de 34 à 37,
+  la pause et la sauvegarde/reprise du délai et de la graine.
+- Les pages locale et publiée passent les contrôles ordinateur/téléphone.
+- Le délai maximal de démarrage des tests est porté à trois minutes : le téléchargement
+  à froid du moteur partagé a dépassé une minute lors des contrôles en ligne.

@@ -7,7 +7,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(/CRASH|BOOT FAILED|Fatal error|Uncaught/.test(m.text()))errors.push(m.text());});
  const wait=ms=>new Promise(r=>setTimeout(r,ms));
  const key=async k=>{await page.keyboard.down(k);await wait(45);await page.keyboard.up(k);await wait(65);};
- const ready=async()=>{await page.waitForFunction(()=>document.getElementById('loader')?.style.display==='none',{timeout:60000});await page.mouse.click(480,100);};
+ const ready=async()=>{await page.waitForFunction(()=>document.getElementById('loader')?.style.display==='none',{timeout:180000});await page.mouse.click(480,100);};
  const state=()=>page.evaluate(()=>{
   window.JumPHP.php(`$s=$GLOBALS['app']->engine->scenes->current();$w=(new ReflectionProperty($s,'world'))->getValue($s);file_put_contents('/tmp/enemy-clock.json',json_encode($w->export()));`);
   return JSON.parse(window.JumPHP.FS.readFile('/tmp/enemy-clock.json',{encoding:'utf8'}));

@@ -1,5 +1,8 @@
 # Corps, arrivée du camion et évasion — version 0.6
 
+Depuis la version 0.7, les nouveaux arrivants augmentent le quota initial de 34 et les
+ennemis circulent : voir [ENNEMIS-ET-HORLOGE.md](ENNEMIS-ET-HORLOGE.md).
+
 Les essais `probe-quest-gates.py` démarrent le vrai programme CPC. Leurs préconditions
 sont contrôlées : position, inventaire, compteur de corps et stationnement des camions.
 La phase des ennemis et les indicateurs de carburant ne sont pas forcés.

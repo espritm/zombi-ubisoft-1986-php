@@ -53,7 +53,8 @@ Saves retain enemyTicks and a portable 16-bit enemySeed; old 0.2–0.6 saves sta
 After raider arrival the completed quota is retained for progress, unlike the repurposed native counter.
 See `tools/extract/ENNEMIS-ET-HORLOGE.md` and `tools/browser-enemy-clock.cjs` for isolated timer/seed controls.
 The escape test now follows the variable quota and can revisit rooms after enemy movement.
-Other special exits, secondary item uses, exact combat and ammunition remain incomplete.
+Other special exits, secondary item uses and exact combat/weapon behavior remain incomplete.
+Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

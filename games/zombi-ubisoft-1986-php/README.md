@@ -57,7 +57,7 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
   Chaque nouvel arrivant augmente le quota de corps à entreposer. Le délai et le tirage sont sauvegardés ; les parties 0.6 restent chargeables.
 
 **Ce n’est pas encore une adaptation complète.** Certains passages spéciaux,
-usages secondaires d’objets, munitions et règles précises de combat restent à compléter.
+usages secondaires d’objets et règles précises des armes et des combats restent à compléter.
 Un parcours d'évasion du prototype depuis une nouvelle partie est testé, jusqu'au décollage des quatre survivants,
 sans injection d'objet, de position, de santé ou d'ennemi. Cela ne prouve pas une équivalence complète au CPC.
 Les chronomètres de repos/réanimation proviennent des observations ; l’horloge et le combat doivent encore être affinés.
