@@ -58,3 +58,14 @@ des personnages éliminés ne sont pas établis par ces essais.
 - Navigateur local : flèches, chiffres, souris, annulation, cible alliée, second
   zombie, dégâts partiels, rechargement et cible soi-même puis changement de survivant.
 - Le scénario de zombification de la version précédente passe avec le sélecteur.
+- Même scénario de sélection réussi sur JumPHP ; combats ordinaires et ripostes
+  différées également contrôlés localement sans régression détectée.
+- Lint réussi ; page publiée contrôlée et inspectée sur ordinateur et téléphone,
+  sans image cassée, débordement ou erreur JavaScript.
+- Construction complète navigateur/site et contrôle de la page locale également
+  réussis sur ordinateur et téléphone.
+- Évasion complète réussie sur JumPHP depuis une nouvelle partie : 34 corps
+  congelés, trois camions garés, arrivée des pillards, sauvegarde/rechargement puis
+  victoire des quatre survivants. Une période de circulation ennemie est franchie.
+  Ce parcours ne modifie ni positions, ni inventaires, ni jauges, ni ennemis ;
+  les cas de sélection restent vérifiés séparément avec leurs fixtures explicites.

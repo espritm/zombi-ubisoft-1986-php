@@ -1,5 +1,8 @@
 # Survivants zombifiés — version 0.10
 
+Ces observations décrivent la version 0.10. La sélection manuelle introduite en
+0.11 est documentée dans [SELECTION-DES-CIBLES.md](SELECTION-DES-CIBLES.md).
+
 ## Observations CPC et préconditions
 
 Les expériences placent Patrick sur le toit (62) et donnent à Alexandre l'état
