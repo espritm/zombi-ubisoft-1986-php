@@ -56,3 +56,13 @@ avec un délai initial nul ; les jauges existantes restent conservées.
 - Navigateur local : sélecteur de soins, +10 F/H, objet conservé, délai partagé,
   sauvegarde/rechargement, expiration, annulation et cible endormie rejetée.
 - Le test navigateur du sélecteur de tirs passe également.
+- Même test de soins réussi sur JumPHP ; délai partagé et conservé après
+  rechargement, expiration, annulation moderne et cible endormie contrôlés.
+- Lint réussi et page publiée contrôlée sur ordinateur et téléphone, sans
+  image cassée, débordement ou erreur JavaScript.
+- Construction navigateur/site et inspection de la page locale également réussies.
+- Évasion complète sur JumPHP réussie : 34 corps congelés, trois camions garés,
+  arrivée des pillards, sauvegarde/rechargement et décollage des quatre survivants.
+  Ce parcours part d'une nouvelle partie sans injection de positions, d'objets,
+  de jauges ou d'ennemis, avec une période de circulation ennemie franchie.
+  Les soins sont testés séparément avec les préconditions contrôlées décrites ici.
