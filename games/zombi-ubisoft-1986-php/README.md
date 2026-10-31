@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.10
+# Zombi — prototype CPC 0.11
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -47,6 +47,8 @@ Pour recommencer : Échap, R, Entrée. En pause, le temps du jeu est arrêté.
 - Sauvegarde locale versionnée et validation des données chargées.
 - Combat des survivants zombifiés présents dans la même pièce et le même véhicule ;
   blessures sauvegardées et élimination définitive sans ajout au quota de corps.
+- Sélecteur de cibles avec une arme à feu sans ennemi ordinaire : flèches ou 1–4,
+  Entrée pour valider, Tab pour annuler. Le nom et l'état de la cible sont affichés.
 - Ascenseur mobile sur cinq niveaux, appels depuis les paliers et transport de tous les passagers.
 - Trois passages avec corde : activer la corde avant de franchir l’ouverture. Sans corde active, le personnage chute.
 - Sauvegarde du plan mobile et chargement conservé pour les anciennes parties 0.2.
@@ -77,7 +79,8 @@ La circulation et les nouveaux arrivants sont détaillés dans [ENNEMIS-ET-HORLO
 Les mesures de dégâts, les préconditions et les limites des combats sont dans [COMBAT-ET-TIRS.md](tools/extract/COMBAT-ET-TIRS.md).
 Les profils ennemis et les tirs différés sont détaillés dans [PROFILS-ET-RIPOSTES.md](tools/extract/PROFILS-ET-RIPOSTES.md).
 Les combats contre les membres zombifiés du groupe sont détaillés dans [SURVIVANTS-ZOMBIFIES.md](tools/extract/SURVIVANTS-ZOMBIFIES.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.10.
+La sélection et les effets sur les autres personnages sont décrits dans [SELECTION-DES-CIBLES.md](tools/extract/SELECTION-DES-CIBLES.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.11.
 
 ## Page et publication
 

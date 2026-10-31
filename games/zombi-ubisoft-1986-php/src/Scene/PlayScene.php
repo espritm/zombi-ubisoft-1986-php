@@ -70,6 +70,15 @@ final class PlayScene extends AbstractScene
         if ($a->isPressed('save')) { $this->saveGame(); return; }
         if ($a->isPressed('load')) { $this->loadGame(); return; }
         if ($a->isPressed('cancel')) { $w->cancel(); }
+        if ($w->mode === 'target') {
+            foreach (['left'=>-1,'up'=>-1,'right'=>1,'down'=>1] as $key=>$delta) {
+                if ($a->isPressed($key)) { $w->changeChoice($delta); }
+            }
+            for ($i=1;$i<=4;$i++) { if ($a->isPressed('person'.$i)) { $w->choice=$i-1; } }
+            if ($a->isPressed('confirm')) { $w->confirm(); }
+            else { $this->mouse(); }
+            $w->advance($dt); return;
+        }
         if ($a->isPressed('door_direction')) { $w->requestDoorDirection(); }
         for ($i = 1; $i <= 4; $i++) { if ($a->isPressed('person' . $i)) { $w->selectPerson($i - 1); } }
         foreach (['character' => 10, 'inventory' => 18, 'move' => 15, 'use_item' => 3] as $key => $action) {
@@ -117,6 +126,10 @@ final class PlayScene extends AbstractScene
         $m = $this->engine->input->getMouse();
         if (!$m->isPressed()) { return; }
         $x = (int)$m->x; $y = (int)$m->y; $w = $this->world;
+        if ($w->mode === 'target') {
+            if ($x >= 20 && $x < 300 && $y >= 50 && $y < 146) { $w->choice=intdiv($y-50,24); $w->confirm(); }
+            return;
+        }
         if ($y < 38 && $x >= 12 && $x < 172) { $w->selectPerson(intdiv($x - 12, 40)); return; }
         if ($y >= 168 && $x >= 16 && $x < 304) {
             $slot = intdiv($x - 16, 32);
@@ -135,7 +148,7 @@ final class PlayScene extends AbstractScene
     private function saveGame(): void
     {
         $ok = $this->engine->storage->writeJson('zombi-v02.json', $this->world->export());
-        $this->world->mode = 'normal'; $this->world->message = $ok ? 'PARTIE SAUVEGARDEE' : 'ECHEC SAUVEGARDE';
+        $this->world->cancel(); $this->world->message = $ok ? 'PARTIE SAUVEGARDEE' : 'ECHEC SAUVEGARDE';
     }
 
     private function loadGame(): void

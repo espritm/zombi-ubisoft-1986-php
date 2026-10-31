@@ -80,8 +80,11 @@ if (-not $ReuseCaptures) {
     foreach ($cell in @(28,1)) {
         Step @('python3','-I','/workspace/analysis/probe-zombie-party-shot.py',"$cell")
     }
+    foreach ($case in @('living','sleep','dead','zombie','gone','other','vehicle','self')) {
+        Step @('python3','-I','/workspace/analysis/probe-target-selection.py',$case)
+    }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py','verify-target-selection.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.10.0';
+    public const VERSION = '0.11.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -58,6 +58,7 @@ final class World
     private int $peak = 0;
     private ?int $battleThreshold = null;
     private int $lastSide = -1;
+    private ?int $selectedTarget = null;
     private int $lastHour = 10;
     private array $initialMap = [];
 
@@ -124,6 +125,7 @@ final class World
 
     public function chooseAction(int $action): void
     {
+        $this->selectedTarget = null;
         $this->action = max(1, min(18, $action));
         $this->mode = 'normal';
         $this->message = self::ACTIONS[$this->action];
@@ -131,6 +133,7 @@ final class World
 
     public function cancel(): void
     {
+        $this->resetCombat();
         $this->mode = 'normal';
         $this->pending = '';
         $this->message = 'ANNULE';
@@ -183,7 +186,7 @@ final class World
     public function changeChoice(int $delta): void
     {
         $count = $this->mode === 'terminal' ? count(self::TERMINAL_COMMANDS) : ($this->mode === 'lift' ? 5 :
-            (in_array($this->mode, ['direction', 'doorDirection'], true) ? 6 : ($this->mode === 'character' ? 4 :
+            (in_array($this->mode, ['direction', 'doorDirection'], true) ? 6 : (in_array($this->mode, ['character', 'target'], true) ? 4 :
             ($this->mode === 'container' ? count($this->containerChoices()) : count($this->inventoryChoices())))));
         $this->choice = ($this->choice + $delta + max(1, $count)) % max(1, $count);
     }
@@ -200,6 +203,7 @@ final class World
         switch ($this->mode) {
             case 'normal': $this->activateAction(); return;
             case 'character': $this->selectPerson($this->choice); return;
+            case 'target': $this->selectTarget($this->choice); return;
             case 'direction': $this->direction = $this->choice; $this->move($this->choice); return;
             case 'doorDirection': $this->changeDoor($this->choice); return;
             case 'lift': $this->moveLift($this->choice); return;
@@ -626,8 +630,11 @@ final class World
             if (in_array(19, $cells, true) && $this->fuelCan > 0) { $this->fuelCan--; $this->fuelTank++; $this->message = 'RESERVOIR REMPLI'; return; }
             $this->message = 'BIDON VIDE OU RESERVOIR FERME'; return;
         }
-        if (in_array($item, [34, 35, 36], true) && $this->opponent() !== null) {
+        if (in_array($item, [34, 35, 36], true)) {
             $this->resetCombat();
+            if ($this->current()['prefix'][6] <= 0) {
+                $this->mode = 'target'; $this->choice = $this->active; $this->message = 'CHOISIR LA CIBLE'; return;
+            }
             $this->mode = 'aim'; $this->aim = 0; $this->aimAge = 0; $this->shotDelay = 0;
             $this->message = 'ENTREE POUR TIRER'; return;
         }
@@ -664,8 +671,9 @@ final class World
         if ($side !== $this->lastSide) { $this->presses++; $this->lastSide = $side; }
     }
 
-    private function resetCombat(): void
+    private function resetCombat(bool $keepTarget = false): void
     {
+        if (!$keepTarget) { $this->selectedTarget = null; }
         $this->pressure = 0; $this->battleTime = 0; $this->pressureTime = 0;
         $this->presses = 0; $this->peak = 0; $this->lastSide = -1; $this->battleThreshold = null;
         $this->shotDelay = 0;
@@ -682,6 +690,11 @@ final class World
     /** #81EF scans party order only after ordinary enemies, matching room and vehicle. */
     public function opponent(): ?array
     {
+        if ($this->selectedTarget !== null) {
+            $p = $this->party[$this->selectedTarget];
+            if ($p['state'] !== 128 || !$this->targetInRoom($this->selectedTarget)) { return null; }
+            return ['person' => $this->selectedTarget, 'hp' => $p['gauges'][0], 'strength' => $p['gauges'][1]];
+        }
         $r = $this->current();
         if ($r['prefix'][6] > 0) { return ['person' => null, 'hp' => $r['hp'], 'strength' => $r['strength']]; }
         foreach ($this->party as $i => $p) {
@@ -690,6 +703,35 @@ final class World
             }
         }
         return null;
+    }
+
+    /** Manual firearm targeting checks the map room, unlike the automatic vehicle check. */
+    private function targetInRoom(int $index): bool
+    {
+        return ($this->map[$this->party[$index]['position']] ?? null) === ($this->map[$this->person()['position']] ?? null);
+    }
+
+    public function targetLabel(int $index): string
+    {
+        $p = $this->party[$index];
+        $state = match ($p['state']) { 0 => 'VIVANT', 16 => 'DORT', 64 => 'MORT', 128 => 'ZOMBI', default => 'ELIMINE' };
+        return substr($p['name'],0,9) . ' ' . ($this->targetInRoom($index) ? $state : 'AILLEURS');
+    }
+
+    public function selectTarget(int $index): bool
+    {
+        if ($this->mode !== 'target' || !isset($this->party[$index])) { return false; }
+        if (!$this->targetInRoom($index) || $this->party[$index]['state'] === 255) {
+            $this->mode = 'normal'; $this->message = 'CIBLE INDISPONIBLE'; return false;
+        }
+        if ($this->party[$index]['state'] !== 128) {
+            // #951E–#9537 kills a non-zombie immediately, preserving its gauges.
+            $this->party[$index]['state'] = 255; $this->party[$index]['used'] = 0;
+            $this->resetCombat(); $this->mode = $index === $this->active ? 'character' : 'normal';
+            $this->choice = $this->active; $this->message = $this->party[$index]['name'] . ' ELIMINE'; return true;
+        }
+        $this->resetCombat(); $this->selectedTarget = $index;
+        $this->mode = 'aim'; $this->aim = 0; $this->aimAge = 0; $this->message = 'ENTREE POUR TIRER'; return true;
     }
 
     private function hurtEnemy(int $damage): void
@@ -874,7 +916,7 @@ final class World
             $this->aimAge += $dt;
             if ($this->shotDelay > 0) { $this->shotDelay = max(0,$this->shotDelay - $dt); }
             else { $this->aim += $dt * (137.5 / 56); }
-            if ($this->aimAge >= 10.24) { $this->resetCombat(); $this->mode = 'combat'; $this->message = 'COMBAT : ALTERNEZ G/D'; }
+            if ($this->aimAge >= 10.24) { $this->resetCombat(true); $this->mode = 'combat'; $this->message = 'COMBAT : ALTERNEZ G/D'; }
         }
         $autoCombat = $this->alert($dt);
         foreach ($this->party as &$p) {
@@ -920,7 +962,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }

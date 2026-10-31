@@ -71,7 +71,14 @@ Their F/H gauges are combat hp/strength; fatal damage sets F=0 and state=255, pr
 Permanent death adds no ordinary enemy corpse or freezer quota. State 255 renders the cross, not a zombie portrait.
 See `tools/extract/SURVIVANTS-ZOMBIFIES.md` (17 native checks) and `tools/browser-zombie-party.cjs` (controlled fixtures).
 Saves retain party wounds/death; 0.2–0.9 still load. U selects the first present zombie in party order.
-Exact firmware timing, frequent native stat rerolls and manual/friendly target selection remain provisional.
+Version 0.11 opens a four-person firearm target selector when no ordinary enemy is present.
+Arrows/numbers choose without switching actor; Return or clicking a row confirms, Tab cancels.
+Manual fire checks the map room but ignores vehicle state (#94D4); automatic combat still checks both.
+States 0/16/64 and self target go directly to 255 without gauge damage. State 128 enters aim; 255/absent are rejected.
+The chosen zombie stays targeted through aim timeout and NPC arrival; the target is transient and not saved.
+Save/cancel/action/person changes clear it, wounds remain. Saves 0.2–0.10 still load.
+See `tools/extract/SELECTION-DES-CIBLES.md` (30 native checks) and `tools/browser-target-selection.cjs`.
+Exact firmware timing, frequent native stat rerolls and elimination object cleanup remain provisional.
 Other special exits and secondary item uses also remain incomplete.
 Do not assume a separate ammunition system exists without observing it in the original.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.

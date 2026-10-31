@@ -89,7 +89,7 @@ final class CpcView
         $r->fillRect(100, 140, 120, 12, [0, 0, 0]);
         $shown = strlen($message) > 14 ? substr($message . $message, $offset, 14) : trim($message);
         $this->text($r, $shown, 104, 142);
-        $this->text($r, 'PROTOTYPE 0.10  F1:AIDE', 8, 154, 'blue');
+        $this->text($r, 'PROTOTYPE 0.11  F1:AIDE', 8, 154, 'blue');
         if ($w->mode === 'object' && in_array($w->pending, ['open','close'], true)) {
             $r->fillRect(0,154,320,10,[0,0,0]); $this->text($r,'F : PORTE PAR DIRECTION',8,154,'blue');
         }
@@ -128,6 +128,14 @@ final class CpcView
             $half = (int)ceil($w->aimWidth() / 2);
             $r->drawRect(72 + (27 - $half) * 94 / 56, 130, $half * 2 * 94 / 56, 8, [0, 128, 255]);
             $r->fillRect(72 + $cursor * 94, 130, 2, 8, [255, 0, 0]);
+        }
+        if ($w->mode === 'target') {
+            $this->panel($r, 'CIBLE - ENTREE : TIRER', []);
+            for ($i=0;$i<4;$i++) {
+                $this->text($r, ($w->choice === $i ? '>' : ' ') . ($i+1) . ' ' . $w->targetLabel($i),20,54+$i*24,
+                    $w->choice === $i ? 'blue' : 'white');
+            }
+            $this->text($r, 'TAB : ANNULER',20,162,'blue');
         }
         if ($w->mode === 'terminal') {
             $this->panel($r, 'TERMINAL - ENTREE : EXECUTER', $w->terminalLines);

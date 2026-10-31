@@ -18,6 +18,7 @@ final class ZombiePartyTest extends TestCase
     private function shoot(World $w, int $cell): void
     {
         $w->party[3]['held'] = 34; $w->chooseAction(3); $w->activateAction();
+        self::assertSame('target',$w->mode); $w->choice=0; $w->confirm();
         self::assertSame('aim',$w->mode);
         $w->aim = ($cell-2+0.1)/56; $w->confirm();
     }
