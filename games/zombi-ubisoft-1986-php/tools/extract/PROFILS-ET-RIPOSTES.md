@@ -80,3 +80,16 @@ après l'engagement du corps à corps. Les autres contrôles restent disponibles
 `browser-ranged.cjs` emploie des préconditions contrôlées puis les mises à jour réelles
 du navigateur et les touches ordinaires. L'évasion complète reste un test séparé
 depuis une nouvelle partie, sans injection d'objets, de positions, de santé ou d'ennemis.
+## Validation 0.9 — 31 octobre 2026
+
+- 24 vérifications sur les exécutions contrôlées du programme CPC original.
+- 56 tests PHP réussis, analyse statique, smoke test de 600 images et lint réussis.
+- Navigateur local : profils, ripostes, report et sauvegarde/rechargement, touche U.
+- Même test ciblé réussi sur la version publiée sur JumPHP.
+- Évasion locale depuis une nouvelle partie : quatre survivants, sans injection
+  d'état de jeu ; une période de déplacement des ennemis franchie pendant le parcours.
+- Page publiée contrôlée sur ordinateur et téléphone : aucune image cassée,
+  aucune erreur JavaScript ni débordement horizontal.
+- Évasion sur JumPHP également réussie : 34 corps congelés, arrivée des pillards,
+  sauvegarde/rechargement et victoire des quatre survivants, sans injection
+  d'état de jeu ; une période de déplacement des ennemis franchie.
