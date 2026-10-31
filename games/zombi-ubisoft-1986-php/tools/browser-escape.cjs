@@ -26,6 +26,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  };
  const move=async d=>{const before=await state(),expected=person(before).position+[8,56,-8,1,-56,-1][d];await key('m');await choose(d,6);let after=await state();assert.equal(person(after).position,expected,JSON.stringify({actor:after.save.active,d,room:after.room,mode:after.mode,message:after.message}));await fight();};
  const travel=async room=>{
+  await fight();
   let s=await state(),map=s.save.map,rooms=s.save.rooms,start=person(s).position,goal=Number(Object.keys(map).find(p=>map[p]===room));
   const q=[[start,[]]],seen=new Set([start]),ds=[8,56,-8,1,-56,-1],fs=[0,5,2,1,4,3];let route;
   for(let i=0;i<q.length;i++){const[p,steps]=q[i];if(p===goal){route=steps;break;}for(let d=0;d<6;d++){
@@ -43,6 +44,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  const lift=async n=>{await object(4,74);await choose(n,5);};
  const freeze=async()=>{await travel(11);for(let i=0;i<4;i++){if(!person(await state()).bag.includes(53))break;await inventory(2,53);}console.log('Frozen:',(await state()).save.frozenBodies);};
  await page.goto(process.argv[2],{waitUntil:'load'});await ready();await key('Enter');await wait(300);
+ const startingSeed=(await state()).save.enemySeed;
  await actor(2);await travel(38);await object(8,13);await object(1,26);await key('Enter');await equip(43);await select(3);await travel(17);
  await actor(1);await travel(41);await object(1,35);await equip(35);await travel(47);await object(1,49);await travel(63);await lift(4);
  await equip(49);await select(8);await key('f');await choose(0,6);await move(0);await object(1,48);await floor(49);await move(2);await lift(1);await equip(35);
@@ -52,19 +54,23 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  await travel(26);await object(1,42);
  for(const[source,door]of[[77,1],[72,2],[82,3]]){await equip(35);await travel(source);await object(8,door);await select(16);await equip(48);await object(4,63);await object(4,71);await select(17);console.log('Truck parked from',source);}
  await actor(3);await travel(41);await object(1,34);await equip(34);let picked=0;
+ cleanup: for(let pass=0;pass<8;pass++){
  for(let id=1;id<=63;id++){
+  if((await state()).save.raidersArrived)break cleanup;
   let s=await state();if(!s.save.rooms[id].prefix[6]&&!s.save.rooms[id].prefix[8])continue;await travel(id);
   for(let j=0;j<40;j++){
    s=await state();if(!s.save.rooms[id].prefix[8])break;
-   if(!person(s).bag.includes(0)){await freeze();await travel(id);s=await state();}
+   if(!person(s).bag.includes(0)){await freeze();if((await state()).save.raidersArrived)break cleanup;await travel(id);s=await state();}
    const n=s.save.rooms[id].prefix[8];await object(1,53);assert.equal((await state()).save.rooms[id].prefix[8],n-1);picked++;
   }
  }
- await freeze();assert.equal(picked,34);assert.equal((await state()).save.raidersArrived,true);await key('F5');await wait(2300);await page.reload({waitUntil:'load'});await ready();await key('c');await wait(300);assert.equal((await state()).save.frozenBodies,34);assert.equal((await state()).save.raidersArrived,true);console.log('Arrival and save/reload verified');
+ await freeze();if((await state()).save.raidersArrived)break;console.log('Another cleanup sweep needed after enemy movement');
+ }
+ const completed=await state();assert.equal(picked,completed.save.zombieTarget);assert.equal(completed.save.frozenBodies,picked);assert.equal(completed.save.raidersArrived,true);await key('F5');await wait(2300);await page.reload({waitUntil:'load'});await ready();await key('c');await wait(300);assert.equal((await state()).save.frozenBodies,picked);assert.equal((await state()).save.raidersArrived,true);console.log('Arrival and save/reload verified');
  await actor(1);await equip(35);await travel(78);await page.screenshot({path:process.argv[3].replace('.png','-truck.png')});await object(8,5);await floor(52);await equip(42);await select(3);assert.equal((await state()).save.fuelCan,1);await object(1,52);
  await travel(62);await object(8,6);await floor(52);await select(3);assert.equal((await state()).save.fuelTank,1);await object(8,4);await select(16);
  for(const n of[3,2,0]){console.log('Boarding survivor',n);await actor(n);await travel(62);await select(16);}
  assert.deepEqual((await state()).save.party.map(p=>p.inside),[90,90,90,90]);await object(4,64);await object(4,72);assert.equal((await state()).ending,'victory');
- await page.screenshot({path:process.argv[3]});assert.equal(errors.length,0,errors.join('\n'));console.log('Complete fresh-game escape OK: four survivors, no game-state injection.');
+ await page.screenshot({path:process.argv[3]});assert.equal(errors.length,0,errors.join('\n'));console.log('Enemy movement period occurred during route:',(await state()).save.enemySeed!==startingSeed);console.log('Complete fresh-game escape OK: four survivors, no game-state injection.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

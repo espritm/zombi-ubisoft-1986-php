@@ -88,6 +88,8 @@ final class QuestRouteTest extends TestCase
     public function testCompleteEscapeFromFreshGameWithoutStateInjection(): void
     {
         $w=new World(json_decode(file_get_contents(__DIR__.'/../assets/original/game.json'),true,512,JSON_THROW_ON_ERROR));
+        // Ordinary waiting on the roof allows one native-length enemy period and new entrants.
+        $w->advance(302.08);self::assertGreaterThanOrEqual(34,$w->export()['zombieTarget']);
         self::assertTrue($w->selectPerson(2));$this->travel($w,38,true);$this->object($w,8,13);$this->object($w,1,26);
         $w->choice=0;$w->confirm();$this->inventory($w,18,43);$w->chooseAction(3);$w->activateAction();$this->travel($w,17,true);
         self::assertTrue($w->selectPerson(1));
@@ -115,6 +117,7 @@ final class QuestRouteTest extends TestCase
         }
         self::assertTrue($w->selectPerson(3));$this->travel($w,41,true);$this->object($w,1,34);$this->inventory($w,18,34);
         $picked=0;
+        for($pass=0;$pass<8&&!$w->raidersArrived;$pass++){
         for($id=1;$id<=63;$id++){
             if($w->rooms[$id]['prefix'][6]===0 && $w->rooms[$id]['prefix'][8]===0){continue;}
             $this->travel($w,$id,true);
@@ -123,7 +126,9 @@ final class QuestRouteTest extends TestCase
                 $count=$w->rooms[$id]['prefix'][8];$this->object($w,1,53);self::assertSame($count-1,$w->rooms[$id]['prefix'][8],$w->message);$picked++;
             }
         }
-        $this->freezeBag($w);self::assertSame(34,$picked);self::assertSame(34,$w->frozenBodies);self::assertTrue($w->raidersArrived);
+        $this->freezeBag($w);
+        }
+        self::assertSame($w->export()['zombieTarget'],$picked);self::assertSame($picked,$w->frozenBodies);self::assertTrue($w->raidersArrived);
         self::assertTrue($w->selectPerson(1));$this->inventory($w,18,35);$this->travel($w,78,true);
         $this->object($w,8,5);$this->floor($w,52);$this->inventory($w,18,42);$w->chooseAction(3);$w->activateAction();
         self::assertSame(1,$w->fuelCan);$this->object($w,1,52);$this->travel($w,62,true);

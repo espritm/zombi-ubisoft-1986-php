@@ -45,7 +45,15 @@ and automatic raider arrival once 34 bodies are frozen and three trucks are park
 The new-game escape test uses ordinary actions without injecting positions, inventory, health or enemies.
 Saves retain frozenBodies, raidersArrived and zombieTarget; older formats 0.2–0.5 migrate with default counters.
 Ordinary exploration, lifts, rope routes, trucks, computer, video and the prototype escape chain are implemented.
-Other special exits, secondary item uses, periodic enemy migration/respawning and ammunition remain incomplete.
+Version 0.7 adds NPC circulation every 15104 ticks at 50 Hz, scanning rooms 1–62 in place.
+Directions use native exit-field order N/E/S/W/down/up, not the player's direction-menu order.
+Targets must be 1–62 with fewer than five enemies; invalid RNG values 6/7 mean stay, other failures retry at most ten times.
+Entrances 19N/31E/32W add an enemy and raise the pre-arrival quota unless their flag is 10 or their room is full.
+Saves retain enemyTicks and a portable 16-bit enemySeed; old 0.2–0.6 saves start this timer at zero.
+After raider arrival the completed quota is retained for progress, unlike the repurposed native counter.
+See `tools/extract/ENNEMIS-ET-HORLOGE.md` and `tools/browser-enemy-clock.cjs` for isolated timer/seed controls.
+The escape test now follows the variable quota and can revisit rooms after enemy movement.
+Other special exits, secondary item uses, exact combat and ammunition remain incomplete.
 Combat/clock balancing is provisional. Do not claim full original parity or a natural walkthrough.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

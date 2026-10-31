@@ -69,7 +69,7 @@ final class ArrivalTest extends TestCase
     public function testProgressSaveValidationAndLegacyMigration(): void
     {
         $w=$this->world();$save=$w->export();
-        foreach(['frozenBodies'=>-1,'raidersArrived'=>1,'zombieTarget'=>35] as $field=>$value){
+        foreach(['frozenBodies'=>-1,'raidersArrived'=>1,'zombieTarget'=>-1,'enemyTicks'=>15104,'enemySeed'=>65536] as $field=>$value){
             $bad=$save;$bad[$field]=$value;self::assertFalse($w->restore($bad));self::assertSame($save,$w->export());
         }
         $legacy=$save;$legacy['version']='0.5.0';unset($legacy['frozenBodies'],$legacy['raidersArrived'],$legacy['zombieTarget']);
