@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.17.0';
+    public const VERSION = '0.18.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -151,7 +151,12 @@ final class World
         if ($this->action === 10) { $this->mode = 'character'; $this->choice = $this->active; return; }
         if ($this->person()['state'] !== 0) { $this->message = 'CHOISIR UN AUTRE SURVIVANT'; return; }
         switch ($this->action) {
-            case 1: $this->pending = 'take'; $this->mode = 'object'; break;
+            case 1:
+                // #A1A2 requires two empty slots across the bag and held item before scene selection.
+                if (count(array_keys(array_merge($this->person()['bag'], [$this->person()['held']]), 0, true)) < 2) {
+                    $this->message = 'DEUX PLACES LIBRES NECESSAIRES'; return;
+                }
+                $this->pending = 'take'; $this->mode = 'object'; break;
             case 2: $this->pending = 'put'; $this->mode = 'inventory'; break;
             case 3: $this->useHeld(); break;
             case 4: $this->pending = 'interact'; $this->mode = 'object'; break;
@@ -200,7 +205,7 @@ final class World
     {
         $items = $this->containers[$this->selectedItem] ?? [];
         $choices = array_values(array_filter($items, fn ($v) => $v > 0));
-        if ($this->selectedItem >= 29 && $this->selectedItem <= 32) { array_unshift($choices, $this->selectedItem); }
+        if ($this->selectedItem >= 27 && $this->selectedItem <= 32) { array_unshift($choices, $this->selectedItem); }
         return $choices ?: [0];
     }
 
@@ -218,7 +223,7 @@ final class World
             case 'container':
                 $item = $this->containerChoices()[$this->choice] ?? 0;
                 if ($item && $this->addItem($item)) {
-                    if ($this->selectedItem >= 29 && $this->selectedItem <= 32 && $this->choice === 0) {
+                    if ($this->selectedItem >= 27 && $this->selectedItem <= 32 && $this->choice === 0) {
                         $this->replaceObject($this->selectedItem, 0);
                     } else {
                         foreach ($this->containers[$this->selectedItem] as &$value) {
@@ -288,7 +293,7 @@ final class World
 
     private function putCorpse(): void
     {
-        $this->removeItem(53); $this->mode = 'normal';
+        $this->removeDepositedItem(53); $this->mode = 'normal';
         if ($this->roomId() === 11) {
             $this->frozenBodies = min(255, $this->frozenBodies + 1);
             $this->message = 'CADAVRE ENTREPOSE'; $this->checkArrival();
@@ -455,6 +460,15 @@ final class World
         if ($p['used'] === $item) { $p['used'] = 0; }
     }
 
+    /** #A3E9 clears the first matching bag slot, then held, even when a duplicate held item was selected. */
+    private function removeDepositedItem(int $item): void
+    {
+        $p = &$this->party[$this->active]; $slot = array_search($item, $p['bag'], true);
+        if ($slot !== false) { $p['bag'][$slot] = 0; }
+        elseif ($p['held'] === $item) { $p['held'] = 0; }
+        if ($p['used'] === $item) { $p['used'] = 0; }
+    }
+
     private function replaceObject(int $old, int $new): void
     {
         foreach ($this->rooms[$this->roomId()]['cells'] as &$cell) {
@@ -485,6 +499,7 @@ final class World
             $this->removeItem($item);
             $this->message = 'CONSOMME'; $this->mode = 'normal';
         } elseif ($this->pending === 'put' && $item !== 0) {
+            if (in_array($item, [54,55], true)) { $this->message = 'CET OBJET NE SE POSE PAS'; $this->mode = 'normal'; return; }
             $this->selectedItem = $item;
             if ($item === 53) { $this->putCorpse(); } else { $this->mode = 'object'; }
         } else { $this->message = 'CHOISIR UN OBJET'; }
@@ -532,14 +547,15 @@ final class World
                         $this->electricShock(); return;
                     }
                 }
-                $slots = $this->containers[$item];
+                // Native body capacity is four. The fifth slot only preserves death-transfer overflow.
+                $slots = $item >= 29 ? array_slice($this->containers[$item], 0, 4) : $this->containers[$item];
                 $free = array_search(0, $slots, true);
                 if ($free === false) { $this->message = 'CONTENANT PLEIN'; return; }
                 $this->containers[$item][$free] = $this->selectedItem;
             } elseif ($item === 0) {
                 if (!$this->placeObject($this->selectedItem)) { return; }
             } else { $this->message = 'CHOISIR UNE PLACE LIBRE'; return; }
-            $this->removeItem($this->selectedItem); $this->message = 'OBJET POSE';
+            $this->removeDepositedItem($this->selectedItem); $this->message = 'OBJET POSE';
         } elseif ($this->pending === 'interact') {
             $this->interact($item);
         } elseif ($this->pending === 'sleep') {
@@ -1077,7 +1093,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', '0.15.0', '0.16.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', '0.15.0', '0.16.0', '0.17.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -1186,6 +1202,7 @@ final class World
     {
         $names = [0 => 'MAIN VIDE', 9 => 'BOITIER', 10 => 'ARMOIRE', 11 => 'ARMOIRE', 12 => 'ARMOIRE', 13 => 'PLACARD',
             22 => 'BOITIER OUVERT', 23 => 'ARMOIRE OUVERTE', 24 => 'ARMOIRE OUVERTE', 25 => 'ARMOIRE OUVERTE', 26 => 'PLACARD OUVERT',
+            27 => 'CONTENANT', 28 => 'CONTENANT',
             33 => 'SOINS', 34 => 'PISTOLET', 35 => 'PISTOLET', 36 => 'FUSIL', 37 => 'COUTEAU', 38 => 'MARTEAU', 39 => 'HACHE',
             40 => 'RADIO', 41 => 'CORDE', 42 => 'TUYAU', 43 => 'LAMPE', 44 => 'JUMELLES', 45 => 'GANTS', 46 => 'PLAN',
             47 => 'CLE HELICO', 48 => 'CLE CAMION', 49 => 'OUTIL', 50 => 'CASSETTE', 51 => 'FUSIBLES', 52 => 'BIDON', 53 => 'CADAVRE',

@@ -57,10 +57,10 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
  await actor(2);await travel(41);await object(1,34);await equip(34);await travel(38);await object(8,13);await object(1,26);await key('Enter');await travel(17);await equip(43);await select(3);
  await actor(1);await travel(41);await object(1,35);await equip(35);await travel(47);await object(1,49);await travel(63);await lift(4);
  await equip(49);await select(8);await key('f');await choose(0,6);await move(0);await object(1,48);await floor(49);await move(2);await lift(1);await equip(35);
- await travel(58);await object(8,12);await object(1,25);await key('Enter');await travel(52);await object(8,11);await object(1,24);await key('Enter');await object(1,24);await key('Enter');
+ await travel(58);await object(8,12);await object(1,25);await key('Enter');await travel(52);await object(8,11);await object(1,24);await key('Enter');await floor(52);await object(1,24);await key('Enter');
  await travel(17);await object(8,9);await equip(45);await select(3);await inventory(2,51);await target(22);await equip(35);
  await travel(63);await lift(4);await move(0);await object(4,62);assert.equal((await state()).save.electricity,true);await move(2);await lift(1);console.log('Power restored through shared torch, gloves and fuse');
- await travel(26);await object(1,42);
+ await travel(52);await floor(45);await object(1,52);await travel(26);await object(1,42);
  for(const[source,door]of[[77,1],[72,2],[82,3]]){await equip(35);await travel(source);await object(8,door);await select(16);await equip(48);await object(4,63);await object(4,71);await select(17);console.log('Truck parked from',source);}
  await actor(3);await equip(36);let picked=0;
  cleanup: for(let pass=0;pass<8;pass++){
@@ -69,7 +69,7 @@ const puppeteer=require('puppeteer'),assert=require('node:assert/strict');
   let s=await state();if(!s.save.rooms[id].prefix[6]&&!s.save.rooms[id].prefix[8])continue;await travel(id);
   for(let j=0;j<40;j++){
    s=await state();if(!s.save.rooms[id].prefix[8])break;
-   if(!person(s).bag.includes(0)){await freeze();if((await state()).save.raidersArrived)break cleanup;await travel(id);s=await state();}
+   if([...person(s).bag,person(s).held].filter(x=>x===0).length<2){await freeze();if((await state()).save.raidersArrived)break cleanup;await travel(id);s=await state();}
    const n=s.save.rooms[id].prefix[8];await object(1,53);assert.equal((await state()).save.rooms[id].prefix[8],n-1);picked++;
   }
  }

@@ -127,5 +127,12 @@ Last fatal shock retains inventory and makes no body; other fatal shocks leave a
 The electricShock return must preserve character selection/defeat instead of being overwritten by objectAction's normal mode.
 No new save fields; accept version0.16. See CHUTES-ET-ELECTROCUTION.md (187 native checks), HazardTest and browser-hazards.cjs.
 Other corpse/container exchanges, further death causes and firmware timing remain incomplete.
+Version 0.18 requires two zero slots across bag+held before PRENDRE opens the scene selector (#A1A2).
+Portable containers 27/28 are taken by identity like bodies; their contents remain in their own dossiers.
+POSER fills the first zero within capacity; bodies have FOUR deposit slots, with the fifth retained only as recoverable death overflow.
+Reject food54/drink55 deposits. POSER removes the first bag occurrence before held, even if the held duplicate was selected; clear used by value.
+Other removal routines retain their earlier behavior pending duplicate-specific observation; do not generalize the POSER evidence.
+Escape tests now put down the can in52 before gloves, reclaim it after power, leave gloves, and freeze bodies with fewer than two free slots.
+No state injection in escape. Accept saves0.17 without new fields. See ECHANGES-ET-CONTENANTS.md (96 native checks), StorageTest/browser-storage.cjs.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

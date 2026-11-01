@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.17
+# Zombi — prototype CPC 0.18
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -100,7 +100,11 @@ La version 0.17 place les corps des chutes au pied des trois façades, conserve 
 les soustractions successives et la mort définitive par électrocution. Les gants et la corde doivent être activés.
 Voir [CHUTES-ET-ELECTROCUTION.md](tools/extract/CHUTES-ET-ELECTROCUTION.md), notamment pour les seuils exacts
 et l'ordre différent du transfert lorsque le dernier survivant meurt.
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.17.
+La version 0.18 applique les deux places libres avant PRENDRE et les quatre places de dépôt dans un corps,
+et conserve le contenu des corps rangés dans un autre contenant. Le parcours d'évasion dépose temporairement
+le bidon puis les gants pour respecter les limites d'inventaire.
+Voir [ECHANGES-ET-CONTENANTS.md](tools/extract/ECHANGES-ET-CONTENANTS.md).
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.18.
 
 ## Page et publication
 

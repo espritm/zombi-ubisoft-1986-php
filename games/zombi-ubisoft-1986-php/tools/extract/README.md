@@ -58,4 +58,6 @@ the prototype route does not establish full CPC parity.
 transport, combat death and reanimation, and documents the bounded five-slot alternative to native overflow.
 `CHUTES-ET-ELECTROCUTION.md` adds 187 native checks for three fall destinations, shock byte order,
 exact-zero survival, active protections and the different last-survivor cleanup order.
+`ECHANGES-ET-CONTENANTS.md` adds 96 native checks for two-free-slot pickup, deposit capacities,
+nested bodies, portable containers, refused food/drink deposits and first-bag duplicate removal.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

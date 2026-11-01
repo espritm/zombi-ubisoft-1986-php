@@ -76,8 +76,8 @@ final class PartyBodyTest extends TestCase
     public function testFullInventoryDoesNotRemoveBodyOrLoot(): void
     {
         $w=$this->world(); $w->party[0]['bag']=[33,0,0,0]; $this->eliminate($w);
-        $w->party[3]['bag']=[37,38,39,45]; $this->openBody($w); $before=$w->export(); $w->confirm();
-        self::assertSame($before,$w->export()); $w->choice=1; $w->confirm(); self::assertSame($before,$w->export());
+        $w->party[3]['bag']=[37,38,39,45]; $before=$w->export(); $w->chooseAction(1); $w->activateAction();
+        self::assertSame('normal',$w->mode); self::assertSame($before,$w->export());
     }
 
     public function testCreatedMarkersFeedPeriodicCorpsePenalty(): void

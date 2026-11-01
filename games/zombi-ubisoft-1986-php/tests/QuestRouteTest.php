@@ -106,6 +106,7 @@ final class QuestRouteTest extends TestCase
         self::assertTrue($w->move(2));$this->object($w,4,74);$w->choice=1;$w->confirm();$this->inventory($w,18,35);
         $this->travel($w,58,true);$this->object($w,8,12);$this->object($w,1,25);$w->choice=0;$w->confirm();
         $this->travel($w,52,true);$this->object($w,8,11);$this->object($w,1,24);$w->choice=0;$w->confirm();
+        $this->floor($w,52); // Reserve the two native free slots before taking gloves.
         $this->object($w,1,24);$w->choice=0;$w->confirm();self::assertContains(45,$w->person()['bag']);
         $this->travel($w,17,true);$this->object($w,8,9);$this->inventory($w,18,45);$w->chooseAction(3);$w->activateAction();
         $this->inventory($w,2,51);$cell=array_search(22,$w->current()['cells'],true);self::assertNotFalse($cell);
@@ -113,6 +114,7 @@ final class QuestRouteTest extends TestCase
         $this->inventory($w,18,35);$this->travel($w,63,true);$this->object($w,4,74);$w->choice=4;$w->confirm();
         self::assertTrue($w->move(0));$this->object($w,4,62);self::assertTrue($w->electricity);
         self::assertTrue($w->move(2));$this->object($w,4,74);$w->choice=1;$w->confirm();
+        $this->travel($w,52,true);$this->floor($w,45);$this->object($w,1,52);
         $this->travel($w,26,true);$this->object($w,1,42);
         foreach([[77,1],[72,2],[82,3]] as [$source,$door]){
             $this->inventory($w,18,35);$this->travel($w,$source,true);$this->object($w,8,$door);
@@ -126,7 +128,7 @@ final class QuestRouteTest extends TestCase
             if($w->rooms[$id]['prefix'][6]===0 && $w->rooms[$id]['prefix'][8]===0){continue;}
             $this->travel($w,$id,true);
             while($w->rooms[$id]['prefix'][8]>0){
-                if(!in_array(0,$w->person()['bag'],true)){$this->freezeBag($w);$this->travel($w,$id,true);}
+                if(count(array_keys(array_merge($w->person()['bag'],[$w->person()['held']]),0,true))<2){$this->freezeBag($w);$this->travel($w,$id,true);}
                 $count=$w->rooms[$id]['prefix'][8];$this->object($w,1,53);self::assertSame($count-1,$w->rooms[$id]['prefix'][8],$w->message);$picked++;
             }
         }
