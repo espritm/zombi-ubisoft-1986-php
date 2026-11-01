@@ -1,5 +1,9 @@
 # Corps des survivants et inventaires — version 0.16
 
+Complément 0.17 : les chutes et l'électrocution sont maintenant détaillées dans
+[CHUTES-ET-ELECTROCUTION.md](CHUTES-ET-ELECTROCUTION.md). Les limites ci-dessous
+décrivent l'étape 0.16 et son périmètre de validation.
+
 ## Observations reproductibles sur les disquettes de l'utilisateur
 
 `sources/probe-party-bodies.py` exécute 16 scénarios dans le jeu original :

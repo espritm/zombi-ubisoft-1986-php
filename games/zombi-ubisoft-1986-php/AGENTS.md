@@ -119,5 +119,13 @@ Definitive firearm elimination frees an associated bed in the shooter's room but
 Old 0.2–0.15 four-slot containers gain a fifth zero; retain valid 0.15 bed associations without old awake-state cleanup.
 See CORPS-ET-INVENTAIRES.md (103 native checks), PartyBodyTest and tools/browser-party-bodies.cjs (controlled fixtures).
 Fall/electrical death cleanup, native two-free-slot guard, container/body exchanges and last-party-death details remain partial.
+Version 0.17 ports fall death: state 255, gauges/party position retained, body/inventory below 35→64,38→66,46→65.
+Transfer before last-survivor defeat, even without room for the marker; held rope is insufficient unless used=41.
+Shock without active gloves45 tests (F-20)&255 >=128 before writing, then does the same with H-10; exact zero stays alive.
+Fatal shock preserves the failing gauge and prior writes, sets 255/used0, and checks for another state<32 BEFORE body transfer.
+Last fatal shock retains inventory and makes no body; other fatal shocks leave a local body. Active gloves install fuse51 unchanged.
+The electricShock return must preserve character selection/defeat instead of being overwritten by objectAction's normal mode.
+No new save fields; accept version0.16. See CHUTES-ET-ELECTROCUTION.md (187 native checks), HazardTest and browser-hazards.cjs.
+Other corpse/container exchanges, further death causes and firmware timing remain incomplete.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.

@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.16.0';
+    public const VERSION = '0.17.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -363,7 +363,11 @@ final class World
         if ($this->person()['used'] !== 41) {
             $this->party[$this->active]['state'] = 255;
             $this->party[$this->active]['used'] = 0;
+            // #8368/#848A leave the body below the facade, without moving the party record.
+            $this->leavePartyBody($this->active, $destination);
+            $this->resetCombat();
             $this->mode = 'character'; $this->choice = $this->active;
+            if (!$this->hasSurvivor()) { $this->ending = 'defeat'; }
             $this->message = 'CHUTE ! CHOISIR UN SURVIVANT'; return false;
         }
         $free = null;
@@ -525,7 +529,7 @@ final class World
                 if ($item === 22) {
                     if ($this->selectedItem !== 51) { $this->message = 'IL FAUT DES FUSIBLES'; return; }
                     if ($this->person()['used'] !== 45) {
-                        $this->damage(20, 10); $this->message = 'DECHARGE ! METTRE LES GANTS'; $this->mode = 'normal'; return;
+                        $this->electricShock(); return;
                     }
                 }
                 $slots = $this->containers[$item];
@@ -845,23 +849,37 @@ final class World
         $this->resetCombat(); $this->mode = 'normal'; $this->message = $this->raidersArrived ? 'ENNEMI ABATTU' : 'ZOMBI ABATTU';
     }
 
-    private function damage(int $f, int $h): void
+    /** #A348–#A367 tests each byte before writing it; zero itself is not fatal. */
+    private function electricShock(): void
     {
         $p = &$this->party[$this->active];
-        $p['gauges'][0] = max(0, $p['gauges'][0] - $f); $p['gauges'][1] = max(0, $p['gauges'][1] - $h);
-        if ($p['gauges'][0] === 0 || $p['gauges'][1] === 0) {
-            $p['gauges'][0] = 0;
-            $p['state'] = 64; $p['ticks'] = 0.0; $p['used'] = 0;
-            $this->mode = 'character'; $this->choice = $this->active; $this->message = 'CHOISIR UN SURVIVANT';
+        foreach ([20,10] as $gauge => $loss) {
+            $value = ($p['gauges'][$gauge] - $loss) & 255;
+            if ($value >= 128) {
+                $p['state'] = 255; $p['used'] = 0; unset($p);
+                $this->resetCombat(); $this->mode = 'character'; $this->choice = $this->active;
+                $this->message = 'ELECTROCUTION ! CHOISIR UN SURVIVANT';
+                // #8479 checks for another available record before placing/transferring this body.
+                if ($this->hasSurvivor()) { $this->leavePartyBody($this->active); }
+                else { $this->ending = 'defeat'; }
+                return;
+            }
+            $p['gauges'][$gauge] = $value;
         }
+        $this->mode = 'normal'; $this->message = 'DECHARGE ! METTRE LES GANTS';
     }
 
     private function roomIdFor(array $p): int { return $p['inside'] ?: ($this->map[$p['position']] ?? 62); }
 
-    /** #8494/#84AF scan the flat grid backwards; #84DD packs nonzero bag items then held. */
-    private function leavePartyBody(int $index): void
+    private function hasSurvivor(): bool
     {
-        $cells = &$this->rooms[$this->roomId()]['cells'];
+        return count(array_filter($this->party, fn ($p) => $p['state'] < 32)) > 0;
+    }
+
+    /** #8494/#84AF scan the flat grid backwards; #84DD packs nonzero bag items then held. */
+    private function leavePartyBody(int $index, ?int $room = null): void
+    {
+        $cells = &$this->rooms[$room ?? $this->roomId()]['cells'];
         for ($i = 39; $i >= 1; $i--) {
             if ($cells[$i] === 0 && $cells[$i - 1] === 0) {
                 $cells[$i - 1] = $cells[$i] = 29 + $index; break;
@@ -1059,7 +1077,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', '0.15.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', '0.15.0', '0.16.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }

@@ -56,4 +56,6 @@ the prototype route does not establish full CPC parity.
 `REVEIL-MANUEL.md` adds 81 native checks for manual wake, bed priority, retained counters and rejected free beds.
 `CORPS-ET-INVENTAIRES.md` adds 103 native checks for body identity, packed inventory, placement, loot,
 transport, combat death and reanimation, and documents the bounded five-slot alternative to native overflow.
+`CHUTES-ET-ELECTROCUTION.md` adds 187 native checks for three fall destinations, shock byte order,
+exact-zero survival, active protections and the different last-survivor cleanup order.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

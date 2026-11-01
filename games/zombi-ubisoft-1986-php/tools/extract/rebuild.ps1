@@ -102,8 +102,11 @@ if (-not $ReuseCaptures) {
     foreach ($case in @('living','sparse','full','split','rowwrap','stale','stale-sparse','self','sleep','vehicle','loot','loot-item','transport','zombie','combat','reanimate')) {
         Step @('python3','-I','/workspace/analysis/probe-party-bodies.py',$case)
     }
+    foreach ($case in @('fall35','fall38','fall46','fall-full35','fall-sparse35','held35','fall-last35','rope35','f19','f20','h9','h10','both','both-under','h-under','zero','gloves','gloves-held','normal','last','f147','f148','h137','h138','full')) {
+        Step @('python3','-I','/workspace/analysis/probe-hazards.py',$case)
+    }
 }
-foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py','verify-target-selection.py','verify-healing.py','verify-illness.py','verify-deprivation.py','verify-wake.py','verify-party-bodies.py')) {
+foreach ($script in @('export-observed.py','export-world.py','export-sprites.py','verify-extraction.py','verify-rules.py','verify-quests.py','verify-lifts-rope.py','verify-trucks-terminal.py','verify-video.py','verify-quest-gates.py','verify-enemy-clock.py','verify-combat-damage.py','verify-ranged-stats.py','verify-zombie-party.py','verify-target-selection.py','verify-healing.py','verify-illness.py','verify-deprivation.py','verify-wake.py','verify-party-bodies.py','verify-hazards.py')) {
     Step @('python3','-I',"/workspace/analysis/$script")
 }
 New-Item -ItemType Directory -Force "$analysis/runs/rom-boot" | Out-Null

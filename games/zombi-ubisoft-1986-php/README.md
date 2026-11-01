@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.16
+# Zombi — prototype CPC 0.17
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -92,11 +92,15 @@ Les soins, leur délai partagé et les limites concernant la maladie sont dans [
 Les effets différés vérifiés sont détaillés dans [MALADIE-ET-CADAVRES.md](tools/extract/MALADIE-ET-CADAVRES.md).
 Les seuils de privation et la récupération sont détaillés dans [FAIM-ET-FATIGUE.md](tools/extract/FAIM-ET-FATIGUE.md).
 Les différences du réveil manuel sont détaillées dans [REVEIL-MANUEL.md](tools/extract/REVEIL-MANUEL.md).
-La version 0.16 relie les morts en combat et les éliminations par tir aux corps identifiés 29–32.
+Depuis la version 0.16, les morts en combat et les éliminations par tir créent les corps identifiés 29–32.
 PRENDRE propose le corps lui-même ou ses objets ; le corps se transporte et se repose avec son contenu.
 Les cinq objets sont conservés dans des dossiers séparés, sans reproduire le débordement mémoire natif.
 Voir [CORPS-ET-INVENTAIRES.md](tools/extract/CORPS-ET-INVENTAIRES.md) pour les observations et les limites.
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.16.
+La version 0.17 place les corps des chutes au pied des trois façades, conserve les objets et corrige
+les soustractions successives et la mort définitive par électrocution. Les gants et la corde doivent être activés.
+Voir [CHUTES-ET-ELECTROCUTION.md](tools/extract/CHUTES-ET-ELECTROCUTION.md), notamment pour les seuils exacts
+et l'ordre différent du transfert lorsque le dernier survivant meurt.
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.17.
 
 ## Page et publication
 
