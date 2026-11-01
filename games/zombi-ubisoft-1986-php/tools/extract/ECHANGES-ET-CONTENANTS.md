@@ -72,3 +72,13 @@ sauvegarde/rechargement, contenants transportables, capacité de dépôt et gard
 de prise. Le titre, le jeu et la capture de sélection du corps imbriqué sont
 inspectés. Les refus de contenant plein conservent le sélecteur du prototype,
 contrairement au retour au menu natif ; la fidélité des menus n'est pas complète.
+
+Après publication de `fc0bb14`, les transferts et sauvegardes passent aussi sur
+JumPHP. Le parcours complet depuis une nouvelle partie y réussit avec les quatre
+survivants : courant, trois camions, 34 corps congelés, arrivée des pillards,
+sauvegarde/rechargement, ravitaillement puis décollage. Une période de circulation
+ennemie s'écoule pendant le parcours. Le pont PHP ne fait que lire l'état pour
+les assertions : aucune injection d'objet, position, santé ou ennemi. La capture
+de victoire est inspectée. Ce succès valide le parcours du prototype, pas une
+équivalence générale au CPC. La page publiée passe aussi les contrôles ordinateur
+et téléphone, sans image manquante, erreur JavaScript ni débordement horizontal.
