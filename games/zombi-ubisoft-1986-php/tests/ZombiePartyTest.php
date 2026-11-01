@@ -52,7 +52,8 @@ final class ZombiePartyTest extends TestCase
         $w = $this->world(); $w->party[0]['gauges'][0] = 5; $before = $w->rooms[62];
         for ($i=0;$i<240 && $w->party[0]['state']===128;$i++) { $w->strike($i%2 ? -1 : 1); $w->advance(0.05); }
         self::assertSame(255,$w->party[0]['state']); self::assertSame(0,$w->party[0]['gauges'][0]);
-        self::assertSame(0,$w->party[0]['used']); self::assertSame($before,$w->rooms[62]);
+        self::assertSame(0,$w->party[0]['used']); self::assertSame($before['prefix'],$w->rooms[62]['prefix']);
+        self::assertSame([29,29],array_slice($w->rooms[62]['cells'],38,2));
         self::assertSame('normal',$w->mode); self::assertNull($w->opponent());
         $w->advance(600); self::assertSame(255,$w->party[0]['state']);
     }
@@ -64,7 +65,8 @@ final class ZombiePartyTest extends TestCase
         self::assertSame(1.92,$w->shotDelay);
         $w->advance(1.92); $w->aim = 0; $w->confirm();
         self::assertSame([0,28,80],$w->party[0]['gauges']); self::assertSame(255,$w->party[0]['state']);
-        self::assertSame($before,$w->rooms[62]);
+        self::assertSame($before['prefix'],$w->rooms[62]['prefix']);
+        self::assertSame([29,29],array_slice($w->rooms[62]['cells'],38,2));
         $fatal = $this->world(); $fatal->party[0]['gauges'] = [50,6,80]; $this->shoot($fatal,28);
         self::assertSame([0,6,80],$fatal->party[0]['gauges']); self::assertSame(255,$fatal->party[0]['state']);
     }

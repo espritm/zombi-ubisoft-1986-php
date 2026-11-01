@@ -5,7 +5,7 @@ namespace App\Model;
 /** Readable PHP state, backed by the tables extracted from the user's CPC discs. */
 final class World
 {
-    public const VERSION = '0.15.0';
+    public const VERSION = '0.16.0';
     public const FLOORS = ['SOUS-SOL', 'NIVEAU 1', 'NIVEAU 2', 'NIVEAU 3', 'NIVEAU 4'];
     public const TERMINAL_COMMANDS = ['LIST', 'ELECTRICITE', 'NUIT', 'BYE'];
     public const ACTIONS = [1 => 'PRENDRE', 2 => 'POSER', 3 => 'UTILISER', 4 => 'ACTIONNER',
@@ -82,6 +82,9 @@ final class World
                 'exposure' => $raw[23], 'illness' => $raw[34]];
         }
         $this->containers = $data['containers'];
+        // Native body records have four slots: a fifth transferred item overwrites the next header.
+        // Keep all five inventory items in independent, bounded records instead.
+        for ($id = 29; $id <= 32; $id++) { $this->containers[$id] = array_pad($this->containers[$id], 5, 0); }
         foreach ($data['objects'] as $o) { $this->objects[$o['id']] = $o; }
         $this->initialMap = $this->map;
         $this->enemySeed = mt_rand(0, 65535);
@@ -197,6 +200,7 @@ final class World
     {
         $items = $this->containers[$this->selectedItem] ?? [];
         $choices = array_values(array_filter($items, fn ($v) => $v > 0));
+        if ($this->selectedItem >= 29 && $this->selectedItem <= 32) { array_unshift($choices, $this->selectedItem); }
         return $choices ?: [0];
     }
 
@@ -214,10 +218,14 @@ final class World
             case 'container':
                 $item = $this->containerChoices()[$this->choice] ?? 0;
                 if ($item && $this->addItem($item)) {
-                    foreach ($this->containers[$this->selectedItem] as &$value) {
-                        if ($value === $item) { $value = 0; break; }
+                    if ($this->selectedItem >= 29 && $this->selectedItem <= 32 && $this->choice === 0) {
+                        $this->replaceObject($this->selectedItem, 0);
+                    } else {
+                        foreach ($this->containers[$this->selectedItem] as &$value) {
+                            if ($value === $item) { $value = 0; break; }
+                        }
+                        unset($value);
                     }
-                    unset($value);
                     $this->mode = 'normal';
                     $this->message = self::itemName($item) . ' PRIS';
                 } else { $this->message = $item ? 'INVENTAIRE PLEIN' : 'VIDE'; }
@@ -749,6 +757,9 @@ final class World
         if ($this->party[$index]['state'] !== 128) {
             // #951E–#9537 kills a non-zombie immediately, preserving its gauges.
             $this->party[$index]['state'] = 255; $this->party[$index]['used'] = 0;
+            $bed = $this->party[$index]['bed'] ?? 0;
+            if (in_array($bed, [57,59], true)) { $this->replaceObject($bed, $bed - 1); }
+            $this->leavePartyBody($index);
             $this->resetCombat(); $this->mode = $index === $this->active ? 'character' : 'normal';
             $this->choice = $this->active; $this->message = $this->party[$index]['name'] . ' ELIMINE'; return true;
         }
@@ -818,6 +829,9 @@ final class World
             $p = &$this->party[$opponent['person']];
             $p['gauges'][0] = 0; $p['state'] = 255; $p['used'] = 0;
             $name = $p['name']; unset($p);
+            $bed = $this->party[$opponent['person']]['bed'] ?? 0;
+            if (in_array($bed, [57,59], true)) { $this->replaceObject($bed, $bed - 1); }
+            $this->leavePartyBody($opponent['person']);
             $this->resetCombat(); $this->mode = 'normal'; $this->message = $name . ' ELIMINE'; return;
         }
         $r = &$this->rooms[$this->roomId()]; $r['prefix'][6] = max(0, $r['prefix'][6] - 1);
@@ -844,6 +858,23 @@ final class World
 
     private function roomIdFor(array $p): int { return $p['inside'] ?: ($this->map[$p['position']] ?? 62); }
 
+    /** #8494/#84AF scan the flat grid backwards; #84DD packs nonzero bag items then held. */
+    private function leavePartyBody(int $index): void
+    {
+        $cells = &$this->rooms[$this->roomId()]['cells'];
+        for ($i = 39; $i >= 1; $i--) {
+            if ($cells[$i] === 0 && $cells[$i - 1] === 0) {
+                $cells[$i - 1] = $cells[$i] = 29 + $index; break;
+            }
+        }
+        unset($cells);
+        $p = &$this->party[$index]; $slot = 0;
+        foreach (array_merge($p['bag'], [$p['held']]) as $item) {
+            if ($item !== 0) { $this->containers[29 + $index][$slot++] = $item; }
+        }
+        $p['bag'] = [0,0,0,0]; $p['held'] = 0; $p['used'] = 0;
+    }
+
     /** #8AFF with phase-specific parameters from #8129/#8141. */
     private function rollEnemyStats(int $id): void
     {
@@ -863,6 +894,7 @@ final class World
         $p = &$this->party[$this->active];
         if ($p['gauges'][0] <= $hit || $p['gauges'][1] <= $hit) {
             $p['gauges'][0] = 0; $p['state'] = 64; $p['ticks'] = 0.0; $p['used'] = 0;
+            unset($p); $this->leavePartyBody($this->active);
             $this->mode = 'character'; $this->choice = $this->active; $this->message = 'CHOISIR UN SURVIVANT'; return;
         }
         $p['gauges'][0] -= $hit; $p['gauges'][1] -= $hit;
@@ -966,7 +998,7 @@ final class World
     /** The CPC checks wake/reanimation before its periodic deprivation pass. */
     private function advanceRest(float $dt): void
     {
-        foreach ($this->party as &$p) {
+        foreach ($this->party as $index => &$p) {
             if (in_array($p['state'], [16, 64], true)) { $p['ticks'] += $dt * 50; }
             if ($p['state'] === 16 && $p['ticks'] >= 119808) {
                 $p['state'] = 0; $p['awakeHours'] = 0;
@@ -978,6 +1010,10 @@ final class World
                 }
             } elseif ($p['state'] === 64 && $p['ticks'] >= 29952) {
                 $p['state'] = 128; $p['gauges'][0] = $p['max'][0]; $p['gauges'][1] = max(0, $p['max'][1] - 20);
+                // #7F34 removes this identity's markers in its map room, ignoring vehicle state.
+                $room = $this->map[$p['position']]; $body = 29 + $index;
+                foreach ($this->rooms[$room]['cells'] as &$cell) { if ($cell === $body) { $cell = 0; } }
+                unset($cell);
             }
         }
         unset($p);
@@ -1023,7 +1059,7 @@ final class World
 
     public function restore(array $save): bool
     {
-        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
+        if (!in_array($save['version'] ?? '', ['0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.7.0', '0.8.0', '0.9.0', '0.10.0', '0.11.0', '0.12.0', '0.13.0', '0.14.0', '0.15.0', self::VERSION], true) || !is_array($save['party'] ?? null) || count($save['party']) !== 4 ||
             !is_array($save['rooms'] ?? null) || count($save['rooms']) !== 90 || !is_array($save['containers'] ?? null)) { return false; }
         $cassette = $save['videoCassette'] ?? ($save['version'] === self::VERSION ? null : 0);
         if (!in_array($cassette, [0, 50], true)) { return false; }
@@ -1058,7 +1094,8 @@ final class World
             if (!is_array($p)) { return false; }
             if (array_key_exists('bed',$p)) {
                 if (!in_array($p['bed'],[0,57,59],true) || ($save['version'] === self::VERSION && $p['bed'] === 0)) { return false; }
-                if ($save['version'] !== self::VERSION && ($p['bed'] === 0 || ($p['state'] ?? null) === 0)) { unset($party[$index]['bed']); }
+                if ($save['version'] !== self::VERSION && $p['bed'] === 0) { unset($party[$index]['bed']); }
+                if (version_compare($save['version'], '0.15.0', '<') && ($p['state'] ?? null) === 0) { unset($party[$index]['bed']); }
             }
             foreach (['exposure','illness'] as $field) {
                 $value = $p[$field] ?? ($save['version'] === self::VERSION ? null : 0);
@@ -1103,13 +1140,16 @@ final class World
                 if (!is_int($value) || $value < 0 || $value > 255) { return false; }
             }
         }
+        $containers = $save['containers'];
         foreach ($this->containers as $id => $slots) {
-            if (!isset($save['containers'][$id]) || !is_array($save['containers'][$id]) || count($save['containers'][$id]) !== count($slots)) { return false; }
-            foreach ($save['containers'][$id] as $item) {
+            if (!isset($containers[$id]) || !is_array($containers[$id]) || !array_is_list($containers[$id])) { return false; }
+            if ($save['version'] !== self::VERSION && $id >= 29 && $id <= 32 && count($containers[$id]) === 4) { $containers[$id][] = 0; }
+            if (count($containers[$id]) !== count($slots)) { return false; }
+            foreach ($containers[$id] as $item) {
                 if (!is_int($item) || $item < 0 || $item > 75) { return false; }
             }
         }
-        $this->rooms = $rooms; $this->party = $party; $this->containers = $save['containers']; $this->map = $map;
+        $this->rooms = $rooms; $this->party = $party; $this->containers = $containers; $this->map = $map;
         $this->videoCassette = $cassette;
         $this->frozenBodies = $frozen; $this->raidersArrived = $raiders;
         $this->zombieTarget = $target; $this->enemyTicks = (float)$ticks; $this->enemySeed = $seed;
@@ -1134,6 +1174,7 @@ final class World
             54 => 'BOISSON', 55 => 'NOURRITURE', 56 => 'LIT', 57 => 'LIT OCCUPE', 58 => 'LIT', 59 => 'LIT OCCUPE',
             62 => 'INTERRUPTEUR', 63 => 'CONTACT', 64 => 'CONTACT', 67 => 'INTERRUPTEUR', 68 => 'CONTACT', 69 => 'CONTACT',
             71 => 'DEMARRER', 72 => 'DECOLLER', 73 => 'ASCENSEUR', 74 => 'ASCENSEUR', 75 => 'TERMINAL'];
-        return $names[$id] ?? ($id === 255 ? 'DECOR' : ($id >= 1 && $id <= 21 ? 'PORTE / OUVERTURE' : 'EQUIPEMENT'));
+        return $names[$id] ?? ($id >= 29 && $id <= 32 ? ['CADAVRE ALEXANDRE','CADAVRE SYLVIE','CADAVRE YANNICK','CADAVRE PATRICK'][$id - 29] :
+            ($id === 255 ? 'DECOR' : ($id >= 1 && $id <= 21 ? 'PORTE / OUVERTURE' : 'EQUIPEMENT')));
     }
 }

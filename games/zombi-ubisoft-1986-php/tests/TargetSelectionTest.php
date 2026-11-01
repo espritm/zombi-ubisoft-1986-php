@@ -37,7 +37,8 @@ final class TargetSelectionTest extends TestCase
             $w=$this->world(); $w->party[0]['state']=$state; $before=$w->party[0]['gauges']; $room=$w->rooms[62];
             $w->party[0]['used']=43; $this->select($w,0);
             self::assertSame(255,$w->party[0]['state']); self::assertSame($before,$w->party[0]['gauges']);
-            self::assertSame(0,$w->party[0]['used']); self::assertSame($room,$w->rooms[62]);
+            self::assertSame(0,$w->party[0]['used']); self::assertSame($room['prefix'],$w->rooms[62]['prefix']);
+            self::assertSame([29,29],array_slice($w->rooms[62]['cells'],38,2));
             self::assertSame(3,$w->active); self::assertSame('normal',$w->mode);
         }
     }

@@ -1,4 +1,4 @@
-# Zombi — prototype CPC 0.15
+# Zombi — prototype CPC 0.16
 
 Portage PHP en cours du Zombi français Amstrad CPC publié par Ubi Soft en 1986.
 Cette version remplace la démonstration de plateformes initiale par les scènes et objets extraits des deux disquettes.
@@ -92,7 +92,11 @@ Les soins, leur délai partagé et les limites concernant la maladie sont dans [
 Les effets différés vérifiés sont détaillés dans [MALADIE-ET-CADAVRES.md](tools/extract/MALADIE-ET-CADAVRES.md).
 Les seuils de privation et la récupération sont détaillés dans [FAIM-ET-FATIGUE.md](tools/extract/FAIM-ET-FATIGUE.md).
 Les différences du réveil manuel sont détaillées dans [REVEIL-MANUEL.md](tools/extract/REVEIL-MANUEL.md).
-Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.15.
+La version 0.16 relie les morts en combat et les éliminations par tir aux corps identifiés 29–32.
+PRENDRE propose le corps lui-même ou ses objets ; le corps se transporte et se repose avec son contenu.
+Les cinq objets sont conservés dans des dossiers séparés, sans reproduire le débordement mémoire natif.
+Voir [CORPS-ET-INVENTAIRES.md](tools/extract/CORPS-ET-INVENTAIRES.md) pour les observations et les limites.
+Commencer une nouvelle partie est conseillé pour tester toute la chaîne de la version 0.16.
 
 ## Page et publication
 

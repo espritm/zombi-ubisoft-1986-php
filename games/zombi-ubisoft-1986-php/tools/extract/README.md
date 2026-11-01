@@ -54,4 +54,6 @@ the prototype route does not establish full CPC parity.
 `MALADIE-ET-CADAVRES.md` adds 93 native checks for periodic health, corpse effects, exposure and byte underflow.
 `FAIM-ET-FATIGUE.md` adds 126 native checks for deprivation thresholds, forced sleep, wake order and consumption.
 `REVEIL-MANUEL.md` adds 81 native checks for manual wake, bed priority, retained counters and rejected free beds.
+`CORPS-ET-INVENTAIRES.md` adds 103 native checks for body identity, packed inventory, placement, loot,
+transport, combat death and reanimation, and documents the bounded five-slot alternative to native overflow.
 Private resources must be uploaded with JumPHP's `upload_private_files` before publication.

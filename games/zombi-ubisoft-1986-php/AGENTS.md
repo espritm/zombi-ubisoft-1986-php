@@ -109,5 +109,15 @@ Only the clicked room's bed is freed. A bounded four-record search rejects orpha
 Current saves accept optional bed 57/59; legacy 0.2–0.14 remove stale associations from already-awake characters and empty bed=0.
 Existing sleeping associations remain; old discarded sleep ticks cannot be reconstructed.
 See `tools/extract/REVEIL-MANUEL.md` (81 native checks), ManualWakeTest and `tools/browser-manual-wake.cjs` (controlled starting positions, real sleep/wake controls).
+Version 0.16 connects manual firearm elimination, party-zombie kills and active combat death to identity corpses 29–32.
+Scan the flat 40-cell room grid backwards for two zeros, even across row boundaries; transfer inventory even without room.
+Pack nonzero bag items then held into the body's container, preserving its unused suffix; clear bag/held/used.
+Use independent five-slot body containers: deliberately preserve the fifth item instead of native overflow into the next header.
+PRENDRE offers the body first, then loot. Taking the body clears its room markers but retains contents; ordinary put places it again.
+No ordinary corpse count or freezer quota for party bodies. Reanimation clears only this identity's markers in its map room.
+Definitive firearm elimination frees an associated bed in the shooter's room but keeps the association in the party record.
+Old 0.2–0.15 four-slot containers gain a fifth zero; retain valid 0.15 bed associations without old awake-state cleanup.
+See CORPS-ET-INVENTAIRES.md (103 native checks), PartyBodyTest and tools/browser-party-bodies.cjs (controlled fixtures).
+Fall/electrical death cleanup, native two-free-slot guard, container/body exchanges and last-party-death details remain partial.
 Never commit original data (DSK, ROM, dumps, PNG atlases, font or recordings), including screenshots derived from them.
 Keep these ignored and use JumPHP private uploads; the repository contains only code, recipes and observations.
