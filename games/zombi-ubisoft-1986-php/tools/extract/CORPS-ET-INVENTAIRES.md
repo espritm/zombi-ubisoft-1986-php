@@ -89,3 +89,12 @@ passe sur la construction distante locale ; ses captures ainsi que le titre et
 le jeu ont été inspectés. La page conserve les illustrations privées déjà publiées
 de la version 0.15 ; aucun nouvel envoi de ressources originales n'est nécessaire
 pour le fonctionnement de cette version.
+
+Après publication de `432d014`, le même scénario navigateur passe sur JumPHP :
+corps et cinq objets, fouille à la souris, transport dans une autre pièce,
+dépôt, sauvegarde/rechargement, récupération du cinquième objet, élimination de
+l'acteur puis sélection d'un survivant, élimination d'une personne zombifiée.
+La page publiée passe aussi les contrôles ordinateur/téléphone : aucune image
+manquante, erreur JavaScript ou largeur débordante. Ses illustrations 0.15 sont
+conservées et identifiées comme telles. Le scénario est contrôlé et ne constitue
+pas un nouveau parcours d'évasion complet dans le navigateur.
