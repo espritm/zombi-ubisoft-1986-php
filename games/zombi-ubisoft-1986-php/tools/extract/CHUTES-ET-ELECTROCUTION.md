@@ -89,3 +89,11 @@ locale, y compris récupération du corps en bas, sauvegarde/rechargement,
 protections actives et ordre de la dernière mort. Le titre, le jeu et la capture
 de récupération du corps ont été inspectés. Les illustrations privées déjà
 publiées de la version 0.15 sont conservées ; aucun nouvel envoi n'est requis.
+
+Après publication de `eb15a9a`, le même scénario passe sur JumPHP : les trois
+chutes, les soustractions successives et les zéros non mortels, les gants, la corde,
+la récupération du corps en bas, la sauvegarde/rechargement et les deux ordres
+de dernière mort. La page publiée passe les contrôles ordinateur/téléphone sans
+image manquante, erreur JavaScript ou débordement horizontal ; sa capture a été
+inspectée. Aucun nouveau parcours d'évasion complet n'a été exécuté dans le
+navigateur pour cette étape ; le parcours PHP reste dans la suite de 109 tests.
